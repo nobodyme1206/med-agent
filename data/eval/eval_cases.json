@@ -1,0 +1,484 @@
+[
+  {
+    "patient_input": "我今年55岁，最近量血压总是150/95左右，头有点晕",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "高血压2级，需评估靶器官损害"
+  },
+  {
+    "patient_input": "最近总是口渴多饮多尿，体重还瘦了，空腹血糖8.2",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "2型糖尿病可能，需OGTT和HbA1c确认"
+  },
+  {
+    "patient_input": "咳嗽咳痰一周了，今天开始发烧38.5度",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "社区获得性肺炎可能，建议胸片和血常规"
+  },
+  {
+    "patient_input": "饭后上腹痛，有时候反酸烧心，已经两个月了",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "消化性溃疡或胃食管反流，建议胃镜"
+  },
+  {
+    "patient_input": "我妈70岁，今天早上突然说话不清楚，左边手脚不灵活",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "急性脑卒中可能，需立即就医"
+  },
+  {
+    "patient_input": "大脚趾突然红肿疼痛，一碰就疼，昨晚喝了啤酒",
+    "expected_department": "风湿免疫科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "急性痛风发作可能"
+  },
+  {
+    "patient_input": "最近两个月情绪很低落，什么都不想做，睡眠也不好",
+    "expected_department": "精神科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "抑郁症可能，建议专业评估"
+  },
+  {
+    "patient_input": "我孩子3岁，发烧39度两天了，精神还行",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "儿童发热，对症退热+查血常规"
+  },
+  {
+    "patient_input": "怀孕28周，血压145/95，脚肿得厉害",
+    "expected_department": "妇产科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "妊娠期高血压/子痫前期可能"
+  },
+  {
+    "patient_input": "吃了阿司匹林和布洛芬之后拉了黑便",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "药物性消化道出血"
+  },
+  {
+    "patient_input": "医生您好，我最近白带量很多，颜色偏黄还有异味，外阴有点痒，这种情况持续了大概一周。",
+    "expected_department": "妇产科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能诊断：细菌性阴道病（需白带常规确认），不排除混合感染可能"
+  },
+  {
+    "patient_input": "医生您好，我家宝宝脸上和手臂上反复起红疹子，已经两周了，时好时坏，这是什么原因啊？",
+    "expected_department": "皮肤科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为特应性皮炎，需排除接触性过敏因素"
+  },
+  {
+    "patient_input": "医生您好，我最近监测空腹血糖一直在8-9mmol/L之间，比以前高了，但餐后血糖基本正常。这是怎么回事？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "可能为2型糖尿病基础血糖控制不足（二甲双胍剂量不足/失效），建议药物方案优化"
+  },
+  {
+    "patient_input": "医生您好，我家孩子最近一周都不爱吃饭，每顿只吃几口就说饱了。",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "可能诊断方向：1.锌缺乏相关食欲减退 2.应激性进食障碍"
+  },
+  {
+    "patient_input": "医生，我有高血压12年了，一直在吃硝苯地平控释片，但最近一周经常头痛，血压也偏高，这是怎么回事？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能原因：1）降压药物依从性不佳导致血压波动性头痛 2）药物剂量不足 3）需排除NSAIDs药物干扰。建议完善血压监测和用药记录"
+  },
+  {
+    "patient_input": "医生，我突然头晕得厉害，还吐了两次，现在感觉天旋地转的。",
+    "expected_department": "急诊科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能病因：1）高血压危象相关头晕 2）前庭系统疾病 3）后循环缺血待排。需紧急评估神经系统体征和影像学检查"
+  },
+  {
+    "patient_input": "医生，我突然胸口剧痛，像被石头压着一样，还出冷汗，这是怎么回事？",
+    "expected_department": "急诊科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能为急性冠脉综合征（不稳定性心绞痛/STEMI），需紧急评估冠脉情况"
+  },
+  {
+    "patient_input": "医生，我家孩子最近总是没精神，玩一会儿就说累，这是怎么回事啊？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能的甲状腺功能减退（需结合体征和实验室检查确认），建议复查甲状腺功能并调整治疗方案"
+  },
+  {
+    "patient_input": "医生您好，我最近半年体重增加了快10公斤，但饮食和运动量都没什么变化，这是怎么回事？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "可能甲状腺功能减退控制不佳（需结合TSH结果），建议调整左甲状腺素剂量"
+  },
+  {
+    "patient_input": "医生，我这段时间腰痛得厉害，最近还感觉右腿也疼，像触电一样。",
+    "expected_department": "骨科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "腰椎神经根受压可能性大（L5/S1神经根受累可能），需影像学确认"
+  },
+  {
+    "patient_input": "医生，我最近体检发现TSH值偏高，报告显示6.8 mIU/L，这是什么意思？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "interpret_lab_result",
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "亚临床甲状腺功能减退可能性大（TSH 6.8 mIU/L），需结合FT3/FT4/TPOAb结果及临床症状综合判断"
+  },
+  {
+    "patient_input": "医生您好，我家孩子最近一周吃饭特别少，以前最爱吃的菜现在都提不起兴趣。",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "可能诊断方向：1)饮食环境改变导致的适应性食欲下降 2)轻度胃肠功能障碍 3)缺铁性贫血待排查"
+  },
+  {
+    "patient_input": "医生，我女儿这几天总说肚子右边不舒服，有时候还会恶心，这是怎么回事啊？",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能诊断方向：1. 药物性肝损伤 2. 胆道系统疾病（如胆总管囊肿）3. 病毒性肝炎。建议完善肝炎病毒学检查及影像学评估"
+  },
+  {
+    "patient_input": "医生，我最近一个月白带特别多，颜色发黄，还有点味道，这是怎么回事啊？",
+    "expected_department": "妇产科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能方向：1)萎缩性阴道炎（与低雌激素相关） 2)细菌性阴道病 3)需排除宫颈病变"
+  },
+  {
+    "patient_input": "医生，我这腰痛已经5周了，特别是久坐之后更明显，躺下会好一些，这是什么原因？",
+    "expected_department": "骨科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能诊断：腰椎退行性病变伴神经根刺激（待排除腰椎间盘突出）。建议阶梯治疗：行为调整→物理治疗→必要时影像学检查"
+  },
+  {
+    "patient_input": "医生，我这段时间特别容易累，稍微活动一下就气喘吁吁的，是怎么回事啊？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "亚临床甲状腺功能减退可能，需实验室确认TSH/FT4水平"
+  },
+  {
+    "patient_input": "医生，我最近血压药一直按时吃，但头还是经常痛，尤其是后脑勺那边，这是怎么回事？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为：1)高血压未达标导致头痛 2)氨氯地平不良反应 3)继发性高血压待排查"
+  },
+  {
+    "patient_input": "医生，我最近一周看东西总是模糊，像隔了一层雾，而且头痛也加重了。",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能诊断：1. 偏头痛伴视觉先兆 2. 药物相关性颅内压增高待排。需完善眼底镜检查和头颅MRI"
+  },
+  {
+    "patient_input": "医生，我家孩子这两天咳嗽得厉害，尤其晚上更严重，需要吃药吗？",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为病毒性上呼吸道感染或过敏性咳嗽，需观察是否进展为支气管炎"
+  },
+  {
+    "patient_input": "医生您好，我这段时间排尿特别费劲，总要等半天才能尿出来，晚上还总起夜，这情况有2个多月了。",
+    "expected_department": "泌尿外科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "良性前列腺增生可能性大，需排除前列腺癌及尿路梗阻"
+  },
+  {
+    "patient_input": "医生您好，我最近两周一直咳嗽，特别是晚上躺下的时候咳得更厉害，有时候还觉得胸口有点闷。",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能诊断方向：1) 感染后咳嗽 2) 咳嗽变异性哮喘待排查。过敏性鼻炎为危险因素"
+  },
+  {
+    "patient_input": "医生您好，我高血压1年了，最近在吃降压药，但头痛还是没缓解，这是怎么回事？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为未控制的高血压伴药物性相互作用，需调整降压方案并监测血压波动"
+  },
+  {
+    "patient_input": "医生，我这半个月总感觉心跳得特别快，有时候还会突然心慌，需要看看是不是心脏病又犯了？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能的诊断方向：1) 硝苯地平不良反应导致心悸 2) β受体阻滞剂撤药后反应 3) 新发心律失常。建议完善心电监测后调整降压方案"
+  },
+  {
+    "patient_input": "医生，我这三个月经常上腹部隐痛，吃完饭更明显，有时候还会反酸，需要吃点药吗？",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能诊断：1) NSAIDs相关胃炎/溃疡 2) H.pylori感染 3) 功能性消化不良。需优先排除器质性疾病"
+  },
+  {
+    "patient_input": "医生您好，我最近在家测血压总是偏高，早上能达到150/95mmHg左右，之前吃的降压药感觉效果不太好了。",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为晨峰高血压控制不佳，考虑药物敏感性下降或继发因素（如睡眠障碍），建议优化降压方案"
+  },
+  {
+    "patient_input": "医生，我腰痛已经3个月了，最近越来越严重，尤其是久坐或弯腰的时候。",
+    "expected_department": "骨科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为腰椎间盘突出伴神经根刺激或脊柱关节炎，需影像学和实验室检查进一步鉴别"
+  },
+  {
+    "patient_input": "医生，我这几天喘得特别厉害，尤其是晚上，感觉气都上不来。",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能为感染诱发的哮喘急性加重，需评估控制药物升级必要性"
+  },
+  {
+    "patient_input": "医生，我这三个月一直咳嗽，痰挺多的，尤其是早上起来的时候，感觉喉咙里有东西堵着。",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为上气道咳嗽综合征合并过敏性鼻炎，需排除慢性支气管炎"
+  },
+  {
+    "patient_input": "医生，我最近特别怕冷，但又时不时会突然觉得很热，出汗很多，这是怎么回事？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为Graves病或其他病因导致的甲状腺功能亢进"
+  },
+  {
+    "patient_input": "医生，我最近一个月经常头痛，这两天还开始觉得右手和右脚有点发麻，这是什么问题啊？",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能诊断方向：1）偏头痛伴感觉先兆 2）药物过量性头痛合并神经系统症状 3）需排除颅内结构性病变"
+  },
+  {
+    "patient_input": "医生您好，我有哮喘病史，最近每次跑步或快走后都觉得胸闷气喘比平时严重，休息半小时才能缓解，需要调整用药吗？",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能为运动诱发支气管收缩，提示哮喘控制不佳，需评估ICS-LABA剂量及预防性用药方案"
+  },
+  {
+    "patient_input": "医生，我家孩子最近一周都不爱吃饭，以前喜欢的食物也不吃了，这是怎么回事？",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能病因：1. 不典型病毒感染后胃肠功能紊乱 2. 喂养行为问题 3. 微量营养素缺乏待排"
+  },
+  {
+    "patient_input": "医生您好，我手臂和腿上反复出现红色的疹子，特别痒，已经持续了大概两周。",
+    "expected_department": "皮肤科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为接触性皮炎（洗衣液相关），需排除药物疹"
+  },
+  {
+    "patient_input": "医生您好，我最近一个月总感觉尿频尿急，白天要跑十来次厕所，晚上也要起夜三四次，很影响生活。",
+    "expected_department": "泌尿外科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能为良性前列腺增生（BPH）伴下尿路症状，需排除尿路感染。高血压药物相关性尿频可能性较低。"
+  },
+  {
+    "patient_input": "医生，我最近一走路就感觉气短，尤其是上楼梯的时候，休息几分钟能缓解，这是怎么回事？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "冠心病稳定性心绞痛可能，心肌缺血症状进展；需评估心功能及调整二级预防方案"
+  },
+  {
+    "patient_input": "医生，我这周腰痛得厉害，特别是久坐之后更严重，站起来活动一下会好一点。",
+    "expected_department": "骨科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为机械性腰痛（腰肌劳损/腰椎退行性变）"
+  },
+  {
+    "patient_input": "医生您好，我最近体检发现TSH值偏高，报告显示6.8 mIU/L，这严重吗？",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "interpret_lab_result",
+      "search_drug",
+      "check_drug_interaction",
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "亚临床甲状腺功能减退可能，需排除药物干扰及明确FT4水平"
+  },
+  {
+    "patient_input": "医生，我最近发现脚踝肿得厉害，按下去会有凹陷，这是怎么回事？",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "可能原因：1）氨氯地平副作用 2）高血压性心脏病伴心功能不全 3）肾损伤。建议完善心脏及肾功能评估后调整降压方案。"
+  },
+  {
+    "patient_input": "医生，我这半个月总觉得浑身没力气，吃饭也没什么胃口，是不是肝病又犯了？",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "interpret_lab_result",
+      "check_drug_interaction"
+    ],
+    "expected_diagnosis_direction": "可能为药物性肝损伤合并慢性肝病急性发作，建议完善肝炎病毒学、腹部超声检查，评估是否需要调整降脂方案"
+  },
+  {
+    "patient_input": "医生，我最近全身皮肤特别痒，尤其是晚上，抓得都睡不着觉。",
+    "expected_department": "皮肤科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "可能原因：1.药物性瘙痒（氨氯地平相关）2.老年性皮肤干燥伴肝功能异常"
+  }
+]

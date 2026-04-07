@@ -1,0 +1,6 @@
+{
+  "num_chunks": 25,
+  "chunk_size": 512,
+  "overlap": 128,
+  "embedding_model": "GLM-Embedding-3"
+}

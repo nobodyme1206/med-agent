@@ -1,0 +1,31 @@
+# ─── 核心框架 ────────────────────────────────
+langgraph>=1.0.0              # Agent 状态机编排
+langchain-core>=1.0.0         # LangChain 核心抽象
+
+# ─── LLM API ────────────────────────────────
+openai>=1.0.0                 # OpenAI-compatible API
+python-dotenv>=1.0.0          # 环境变量
+
+# ─── RAG 检索 ───────────────────────────────
+faiss-cpu>=1.7.4              # 向量检索（FAISS Dense）
+rank-bm25>=0.2.2              # BM25 稀疏检索
+sentence-transformers>=3.0.0  # BGE-Reranker-v2-m3（CrossEncoder）
+
+# ─── 后训练（AutoDL 环境）──────────────────
+# pip install trl>=0.15.0     # GRPO Trainer
+# pip install peft>=0.10.0    # LoRA/QLoRA
+# pip install bitsandbytes>=0.43.0
+# pip install transformers>=4.45.0
+# pip install accelerate>=0.30.0
+
+# ─── 评测 ────────────────────────────────────
+datasets>=2.18.0
+
+# ─── Demo ────────────────────────────────────
+gradio>=5.0.0                 # Web Demo (需 huggingface_hub>=1.0)
+
+# ─── 数据处理 ────────────────────────────────
+numpy>=1.24.0
+tqdm>=4.65.0
+pandas>=2.0.0
+pytest>=7.0.0                 # 单元测试

@@ -1,0 +1,22 @@
+{
+  "version": "v1.0",
+  "created_at": "2026-04-05",
+  "updated_at": "2026-04-05 16:54",
+  "description": "MedAgent synthetic data v1.0",
+  "rounds": {
+    "r1_synth": {
+      "generated": 500,
+      "quality_passed": 499,
+      "sft_converted": 499,
+      "grpo_converted": 499
+    }
+  },
+  "stats": {
+    "departments": 11,
+    "drug_kb": 56,
+    "lab_ranges": 48,
+    "guidelines": 25,
+    "red_team": 100,
+    "eval_cases": 50
+  }
+}

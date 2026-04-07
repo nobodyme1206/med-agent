@@ -1,0 +1,25 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+
+# Data artifacts
+data/faiss_index/
+data/drug_kb/*.pkl
+data/guidelines/*.index
+data/guidelines/*.pkl
+data/synth/trajectories/*.json
+data/synth/sft_data/*.json
+
+# Model checkpoints
+output/
+*.pt
+*.bin
+*.safetensors
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
