@@ -1,0 +1,45 @@
+# ReST (Reinforced Self-Training) SFT 配置
+# 在 ReST 筛选后的高质量数据上继续微调
+# 用法: llamafactory-cli train training/configs/rest_sft_config.yaml
+
+### Model - 从 SFT checkpoint 继续训练
+model_name_or_path: /root/autodl-tmp/models/Qwen/Qwen2___5-7B-Instruct
+adapter_name_or_path: /root/autodl-tmp/output/qwen2.5-7b-med-agent-sft
+
+### Method
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 16
+lora_alpha: 32
+lora_target: all
+lora_dropout: 0.05
+
+### Dataset
+dataset: med_agent_rest
+dataset_dir: /root/autodl-tmp/data
+template: qwen
+cutoff_len: 4096
+overwrite_cache: true
+
+### Output
+output_dir: /root/autodl-tmp/output/qwen2.5-7b-med-agent-rest
+logging_steps: 10
+save_steps: 50
+save_total_limit: 3
+overwrite_output_dir: true
+
+### Training - 短训练，1 epoch 足够
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 5.0e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+
+### Evaluation
+val_size: 0.05
+per_device_eval_batch_size: 4
+eval_strategy: steps
+eval_steps: 50

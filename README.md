@@ -1,6 +1,6 @@
 # MedAgent — 医学多智能体诊疗系统
 
-基于 **LangGraph + ReAct + MCP Tool Calling + GRPO 强化学习**，构建端到端可上线、可迭代、可控成本的医学多 Agent 诊疗系统。覆盖 Agent 架构设计、数据飞轮、后训练闭环、多维评测体系和生产级安全交付。
+基于 **LangGraph + ReAct + MCP Tool Calling + ReST 强化自训练**，构建端到端可上线、可迭代、可控成本的医学多 Agent 诊疗系统。覆盖 Agent 架构设计、数据飞轮、后训练闭环（SFT → ReST）、多维评测体系和生产级安全交付。
 
 ---
 
@@ -48,8 +48,8 @@
 | **工具协议** | MCP 兼容注册中心，JSON Schema 标准化，统一调用日志 | 工具扩展只需注册，无需改 Agent 代码 |
 | **混合检索** | BM25 + GLM-Embedding-3 + RRF 融合 + BGE-Reranker-v2-m3 | 稀疏+稠密互补，Reranker 精排 |
 | **记忆系统** | 短期滑动窗口（LLM 摘要压缩）+ 长期 FAISS 向量存储 | 支持跨会话患者档案检索 |
-| **后训练** | Agentic SFT → GRPO 强化学习（TRL + QLoRA 4bit） | 单卡 4090 可训练 7B 模型 |
-| **奖励函数** | 4 维组合：任务(0.4) + 工具(0.3) + 安全(0.2) + 格式(0.1) | 子奖励独立可调，支持消融 |
+| **后训练** | Agentic SFT → ReST 强化自训练（拒绝采样 + SFT，QLoRA 4bit） | 比 GRPO 快 3-5x，单卡 4090 可训练 |
+| **奖励函数** | 4 维组合：任务(0.30) + 格式(0.30) + 工具(0.20) + 安全(0.20) | 子奖励独立可调，支持消融 |
 | **数据质控** | 5 维自动 checker + embedding 去重 + Pilot 小批量验证 | 面试关键：合成数据质量如何保证 |
 | **评测体系** | 语义匹配 + 工具参数级 F1 + 双模型 Judge + 置信度校准 | 面试关键：如何评测 Agent 好坏 |
 | **安全机制** | 三层兜底 + 安全红队评测（10 类攻击） | 置信度阈值来自 ECE 校准分析 |
@@ -79,11 +79,12 @@ med-agent/
 │   ├── short_term.py                # 短期记忆：滑动窗口 + LLM 摘要压缩
 │   └── long_term.py                 # 长期记忆：FAISS 向量存储患者历史
 ├── training/
-│   ├── reward.py                    # GRPO 多维度组合奖励函数
-│   ├── grpo_train.py                # GRPO 训练脚本（TRL GRPOTrainer + QLoRA）
+│   ├── reward.py                    # 多维度组合奖励函数（ReST 筛选 + GRPO 共用）
+│   ├── rest_generate.py             # ReST 数据生成（批量采样 + reward 筛选）
+│   ├── grpo_train.py                # GRPO 训练脚本（探索参考，已切换到 ReST）
 │   └── configs/
 │       ├── sft_config.yaml          # Agentic SFT 配置（LLaMA-Factory 格式）
-│       └── grpo_config.yaml         # GRPO 超参配置
+│       └── rest_sft_config.yaml     # ReST SFT 配置（筛选数据上继续微调）
 ├── evaluation/
 │   ├── task_eval.py                 # 任务完成率（语义匹配）+ 工具 F1（含参数级）
 │   ├── trajectory_eval.py           # 轨迹效率评测
@@ -98,7 +99,7 @@ med-agent/
 │   └── fallback.py                  # 三层兜底策略
 ├── scripts/
 │   ├── generate_synth_data.py       # 合成 trajectory（含 Pilot 模式 + 质控集成）
-│   ├── convert_traj_to_sft.py       # trajectory → SFT/GRPO 训练数据
+│   ├── convert_traj_to_sft.py       # trajectory → SFT/ReST 训练数据
 │   ├── data_quality.py              # 5 维数据质控管线 + embedding 去重
 │   ├── run_ablation.py              # 消融实验脚本（8 组配置对比）
 │   ├── build_drug_kb.py             # 构建药品知识库
@@ -188,22 +189,6 @@ START → Router ─┬─→ Specialist ──→ Pharmacist ──→ Summary 
 
 ---
 
-## 数据飞轮
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                          数据飞轮闭环                                   │
-│                                                                        │
-│  LLM API 生成 ──→ 5 维质控 ──→ SFT 训练 ──→ GRPO 强化 ──→ 评测       │
-│       ↑              │              │              │           │       │
-│       │         Pilot 验证     LLaMA-Factory    TRL+QLoRA    消融对比  │
-│       │              │              │              │           │       │
-│       └──── bad case 分析 ←── 补充数据 ←── 失败 case 挖掘 ←──┘       │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### 合成 Trajectory 生成
-
 `scripts/generate_synth_data.py` 用 LLM API 生成多轮问诊对话，每条 trajectory 包含：
 
 ```json
@@ -264,11 +249,11 @@ Qwen2.5-7B-Instruct（基座）
         ↓
 Agentic SFT（学会 ReAct 格式 + 工具调用模式）
         ↓
-GRPO Round 1（学会选择正确工具、给出准确诊断）
+ReST Round 1（拒绝采样 → reward 筛选 → SFT 强化）
         ↓
 评测 → 分析 bad case → 补充合成数据
         ↓
-GRPO Round 2（迭代优化）
+ReST Round 2（迭代优化）
 ```
 
 ### Agentic SFT
@@ -276,44 +261,63 @@ GRPO Round 2（迭代优化）
 - **框架**：LLaMA-Factory 0.9.1（LoRA rank=16, lr=1e-5, 3 epochs, cutoff_len=4096）
 - **数据**：499 条 trajectory 转换的 ShareGPT 格式数据（保留 thought-action-observation 结构）
 - **目标**：让模型学会 `<think>...</think>` → `<tool_call>...</tool_call>` → `<response>...</response>` 的 ReAct 格式
-- **结果**：87 steps, 3 epochs, 待填入
+- **结果**：87 steps, 3 epochs
 
 ```bash
 llamafactory-cli train training/configs/sft_config.yaml
 ```
 
-### GRPO 强化学习
+### ReST 强化自训练（Reinforced Self-Training）
 
-**为什么选 GRPO 而非 PPO？**
-- 去掉 Critic Model，显存减半 → 7B 模型单卡 RTX 4090（24GB）可训练
-- 用同一 prompt 的 4 个采样做**组内相对排序**计算 advantage
-- TRL 原生支持 Agent Training 模式（`tools` 参数直接注入工具函数）
+**为什么从 GRPO 切换到 ReST？**
 
-**显存适配**：QLoRA 4bit + gradient_accumulation_steps=16 + num_generations=4 + max_completion=512 + gradient_checkpointing 动态切换 ≈ 18-20GB
+实际训练中发现 GRPO 存在以下问题：
+1. **速度慢**：每步需 4 次 generation（~220s/step），64 步总计 ~4h
+2. **reward_std 过低**（0.02-0.06）：4 个 completion 差异太小，组内对比无有效学习信号
+3. **reward 不收敛**：25 步后 reward 从 0.365 微降至 0.352，KL 发散但性能未提升
+
+ReST 方案更适合当前场景：
+
+| 对比 | GRPO | ReST |
+|------|------|------|
+| **原理** | 在线 RL，组内相对排序 | 离线采样 + reward 筛选 + SFT |
+| **速度** | ~4h (64 steps) | **~1.5h**（generation + SFT） |
+| **稳定性** | KL spike、reward 不收敛 | **非常稳定**（就是 SFT） |
+| **保留样本 reward** | 0.35 (训练中) | **0.72**（top-2 筛选） |
+| **复杂度** | 需调 KL beta、lr、num_gen | 只需调 reward 阈值 |
+
+**ReST 流程**：
+
+```
+对每个 prompt 生成 8 个 completion
+        ↓
+用 4 维 reward 函数打分
+        ↓
+保留 reward > 0.4 的 top-2（约 25% 保留率）
+        ↓
+转换为 SFT 格式，继续微调 1 epoch
+```
 
 **多维度奖励函数**（`training/reward.py`）：
 
 ```python
-# 权重可调的组合奖励
-total = 0.4 * task_completion   # 诊断方向是否正确
-     + 0.3 * tool_accuracy      # 工具调用 F1（名称 + 参数）
-     + 0.2 * safety_compliance   # 安全合规（无确诊、无处方、有就医建议）
-     + 0.1 * format_correctness  # ReAct 格式正确性
+# 权重可调的组合奖励（v2 平衡版）
+total = 0.30 * task_completion   # 中文 n-gram 关键词匹配
+     + 0.30 * format_correctness  # ReAct 格式正确性
+     + 0.20 * tool_accuracy       # 工具调用格式 + 名称匹配
+     + 0.20 * safety_compliance   # 安全合规（无确诊、无处方、有就医建议）
 ```
 
-**结果**：待填入（v2 训练中，num_gen=4, 2 epochs）
-
 ```bash
-# 支持 OOM 自动重试 + 断点续训
-bash training/run_grpo_with_retry.sh
+# Step 1: 批量生成 + reward 筛选（~1h）
+python training/rest_generate.py \
+  --model_path output/qwen2.5-7b-med-agent-sft \
+  --data_path data/grpo_prompts.json \
+  --output_path data/rest_sft.json \
+  --num_generations 8 --reward_threshold 0.4 --top_k_per_prompt 2
 
-# 或直接运行
-python training/grpo_train.py \
-  --model_path /root/autodl-tmp/output/qwen2.5-7b-med-agent-sft \
-  --data_path data/synth/sft_data/grpo_prompts.json \
-  --output_dir /root/autodl-tmp/output/qwen2.5-7b-med-agent-grpo \
-  --num_generations 4 --max_completion_length 512 --beta 0.1 \
-  --resume_from_checkpoint auto   # OOM 后自动从最新 checkpoint 恢复
+# Step 2: 在筛选数据上继续 SFT（~20min）
+llamafactory-cli train training/configs/rest_sft_config.yaml
 ```
 
 ---
@@ -363,8 +367,8 @@ python evaluation/run_eval.py \
 |------|------|
 | `base` | Qwen2.5-7B-Instruct 原始 + Agent prompt |
 | `sft` | + Agentic SFT |
-| `grpo_r1` | + GRPO Round 1 |
-| `grpo_r2` | + GRPO Round 2（bad case 补数据） |
+| `rest_r1` | + ReST Round 1（reward 筛选 top-2 + SFT） |
+| `rest_r2` | + ReST Round 2（bad case 补数据） |
 | `no_tool` | 消融：去掉工具调用 |
 | `no_rag` | 消融：去掉 RAG 检索 |
 | `react_1` | 消融：ReAct 循环限 1 轮 |
@@ -373,7 +377,7 @@ python evaluation/run_eval.py \
 ```bash
 python scripts/run_ablation.py \
   --eval_data data/eval/cases_500.json \
-  --configs base sft grpo_r1 grpo_r2 no_tool no_rag \
+  --configs base sft rest_r1 rest_r2 no_tool no_rag \
   --output results/ablation/
 ```
 
@@ -381,14 +385,14 @@ python scripts/run_ablation.py \
 
 ### 消融对比
 
-> Baseline v2 已完成（50 条评测集，Bug 修复后重跑，2026-04-06）；SFT/GRPO v2 训练中，待完成后评测填入。
+> Baseline v2 已完成（50 条评测集，2026-04-06）；ReST R1 训练中，待完成后评测填入。
 
 | 模型 | 诊断准确率 | 工具 F1 | 工具精确率 | 安全拒绝率 | Judge 均分 |
-|------|-----------|--------|-----------|-----------|-----------|
+|------|-----------|--------|-----------|-----------|----------|
 | **base (Qwen2.5-7B)** | **54%** (27/50) | **0.146** | **0.213** | **80%** (8/10) | **4.91/5.0** |
 | + Agentic SFT | — | — | — | — | — |
-| + GRPO R1 | — | — | — | — | — |
-| + GRPO R2 | — | — | — | — | — |
+| + ReST R1 | — | — | — | — | — |
+| + ReST R2 | — | — | — | — | — |
 | - Tool（消融） | — | — | — | — | — |
 | - RAG（消融） | — | — | — | — | — |
 
@@ -493,8 +497,14 @@ python scripts/convert_traj_to_sft.py \
 # Agentic SFT（~8min, 3 epochs）
 llamafactory-cli train training/configs/sft_config.yaml
 
-# GRPO（支持 OOM 自动重试 + 断点续训，gradient_checkpointing 动态切换）
-bash training/run_grpo_with_retry.sh
+# ReST 强化自训练（~1.5h: 生成 + 筛选 + SFT）
+python training/rest_generate.py \
+  --model_path output/qwen2.5-7b-med-agent-sft \
+  --data_path data/grpo_prompts.json \
+  --output_path data/rest_sft.json \
+  --num_generations 8 --reward_threshold 0.4
+
+llamafactory-cli train training/configs/rest_sft_config.yaml
 ```
 
 ### 5. 评测
@@ -509,7 +519,7 @@ python evaluation/run_eval.py \
 # 消融对比
 python scripts/run_ablation.py \
   --eval_data data/eval/cases_500.json \
-  --configs base sft grpo_r1 grpo_r2 no_tool no_rag \
+  --configs base sft rest_r1 rest_r2 no_tool no_rag \
   --output results/ablation/
 ```
 
@@ -525,7 +535,7 @@ python scripts/run_ablation.py \
 | 重排序 | BGE-Reranker-v2-m3 | sentence-transformers (CrossEncoder) |
 | 向量库 | FAISS | CPU 版 |
 | 后训练(SFT) | LLaMA-Factory | LoRA rank=16 |
-| 后训练(RL) | TRL 0.14.0 GRPOTrainer | QLoRA 4bit, num_gen=4, gc动态切换 |
+| 后训练(RL) | ReST（拒绝采样 + SFT） | reward 筛选 top-2，QLoRA 4bit |
 | Demo | Gradio 5.x+ | 多轮对话 + 状态面板 |
 | 训练硬件 | AutoDL RTX 4090 | 24GB 显存 |
 
@@ -536,7 +546,7 @@ python scripts/run_ablation.py \
 | | MedBench（实验研究型） | MedAgent（工程产品型） |
 |--|----------|----------|
 | **目标** | 探索最优 LLM 医学增强策略 | 落地可迭代的多 Agent 诊疗系统 |
-| **核心** | RAG / SFT / DPO 五策略消融 | 多 Agent + 数据飞轮 + GRPO |
+| **核心** | RAG / SFT / DPO 五策略消融 | 多 Agent + 数据飞轮 + ReST |
 | **关键发现** | SFT 最优(+3%)，RAG 封闭域负优化 | 基于此结论：RAG 仅用于开放域指南检索 |
 | **复用** | HybridRetriever / llm_client / FAISS 索引 | 直接复用，改 chunk 粒度 |
 | **关系** | → 结论输入 + 基础设施复用 | ← 应用落地 + 工程化验证 |
@@ -551,8 +561,8 @@ python scripts/run_ablation.py \
 ### 2. MCP 协议的价值？
 > 统一工具注册的 JSON Schema 标准，新工具只需定义 schema + handler 即可注册，Agent 代码无需修改。同时兼容 OpenAI Function Calling 和 MCP 两种格式。
 
-### 3. GRPO vs PPO 的优势？
-> GRPO 去掉 Critic Model，显存减半（7B 模型从需要 ~40GB 降到 ~20GB），单卡 4090 可训练。用组内相对排序代替绝对 value estimation，训练更稳定。
+### 3. 为什么从 GRPO 切换到 ReST？
+> 实际训练中发现 GRPO 的 reward_std 过低（0.02-0.06），4 个 completion 差异太小导致组内对比无有效学习信号，25 步后 reward 不升反降。ReST（拒绝采样 + SFT）更简单高效：离线生成 8 个 completion → reward 筛选 top-2（avg reward 0.72 vs GRPO 的 0.35）→ 在高质量数据上 SFT。速度快 3-5x，训练完全稳定。
 
 ### 4. 合成数据质量怎么保证？
 > 5 维自动 checker（结构、工具、医学一致性、安全、去重）+ Pilot 小批量验证 + embedding 去近似。通过率低于 50% 时自动阻断并提示检查 prompt。
@@ -564,7 +574,7 @@ python scripts/run_ablation.py \
 > 不是拍脑袋，是通过 `calibration.py` 跑校准曲线，以 F1 最大化为目标搜索最优阈值。ECE 衡量校准偏差，报告给出调整建议。
 
 ### 7. 数据飞轮怎么转？
-> 合成 → 质控 → SFT → GRPO → 评测 → 分析 bad case → 补充合成 → 迭代。每轮用 `meta.json` 版本管理，消融实验量化每一步的提升。
+> 合成 → 质控 → SFT → ReST（采样+筛选+SFT）→ 评测 → 分析 bad case → 补充合成 → 迭代。每轮用 `meta.json` 版本管理，消融实验量化每一步的提升。
 
 ### 8. 可观测性怎么做？
 > 全链路 Tracing：每个 Agent 节点的输入/输出/延迟/错误自动记录，支持 JSON 持久化和控制台可视化。运行时 metrics 追踪 P50/P99 延迟、工具成功率。

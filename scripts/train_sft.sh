@@ -44,7 +44,7 @@ echo ""
 echo "=========================================="
 echo "  SFT 训练完成！"
 echo "  模型路径: $WORK_DIR/output/qwen2.5-7b-med-agent-sft/"
-echo "  下一步: bash scripts/train_grpo.sh"
+echo "  下一步: python training/rest_generate.py --model_path \$WORK_DIR/output/qwen2.5-7b-med-agent-sft ..."
 echo "=========================================="
 
 # SFT 中间检查（可选）
