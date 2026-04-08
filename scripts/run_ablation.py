@@ -1,25 +1,31 @@
 """
 消融实验脚本：对比不同模型/配置下的评测指标。
 
-对比的 5 个模型：
+对比的模型：
   1. base       - Qwen2.5-7B-Instruct 原始模型
   2. sft        - Agentic SFT 后
-  3. grpo_r1    - GRPO 第一轮
-  4. grpo_r2    - GRPO 第二轮（bad case 补数据后）
-  5. no_tool    - 去掉工具调用的消融
-  6. no_rag     - 去掉 RAG 检索的消融
-  7. react_1    - ReAct 循环限制为 1 轮
-  8. react_5    - ReAct 循环限制为 5 轮
+  3. rest_r1    - ReST 第一轮（拒绝采样 + SFT）
+  4. no_tool    - 消融: 去掉工具调用
+  5. no_rag     - 消融: 去掉 RAG 检索
+  6. react_1    - 消融: ReAct 循环限制为 1 轮
+  7. react_5    - 消融: ReAct 循环限制为 5 轮
+
+模型切换方式：
+  通过 api_base 指定不同的 LLaMA-Factory API 端点（每个端点加载不同 adapter），
+  或通过预先启动的 API 服务 + 环境变量 CHAT_MODEL 切换。
+  实际使用时，先启动对应模型的 API 服务，再运行指定配置。
 
 用法:
   python scripts/run_ablation.py --eval_data data/eval/cases_500.json --output results/ablation/
 """
 
+import os
 import sys
 import json
 import time
 import logging
 import argparse
+import importlib
 from pathlib import Path
 from typing import Dict, List
 
@@ -36,56 +42,56 @@ logger = logging.getLogger(__name__)
 ABLATION_CONFIGS = {
     "base": {
         "description": "Qwen2.5-7B-Instruct 原始模型",
-        "model_path": None,  # 使用默认 API 模型
+        "api_base": None,  # 使用环境变量默认值
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": True,
         "max_loops": 3,
     },
     "sft": {
         "description": "Agentic SFT 后",
-        "model_path": "models/sft_merged/",
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": True,
         "max_loops": 3,
     },
-    "grpo_r1": {
-        "description": "GRPO 第一轮",
-        "model_path": "models/grpo_r1_merged/",
-        "use_tools": True,
-        "use_rag": True,
-        "max_loops": 3,
-    },
-    "grpo_r2": {
-        "description": "GRPO 第二轮 (bad case 补数据)",
-        "model_path": "models/grpo_r2_merged/",
+    "rest_r1": {
+        "description": "ReST 第一轮（拒绝采样 + SFT）",
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": True,
         "max_loops": 3,
     },
     "no_tool": {
         "description": "消融: 去掉工具调用",
-        "model_path": None,
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": False,
         "use_rag": True,
         "max_loops": 3,
     },
     "no_rag": {
         "description": "消融: 去掉 RAG 检索",
-        "model_path": None,
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": False,
         "max_loops": 3,
     },
     "react_1": {
         "description": "消融: ReAct 循环 1 轮",
-        "model_path": None,
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": True,
         "max_loops": 1,
     },
     "react_5": {
         "description": "消融: ReAct 循环 5 轮",
-        "model_path": None,
+        "api_base": None,
+        "chat_model": "default",
         "use_tools": True,
         "use_rag": True,
         "max_loops": 5,
@@ -121,6 +127,17 @@ def run_single_ablation(
         评测结果字典
     """
     logger.info(f"运行消融实验: {config_name} - {config['description']}")
+
+    # 切换模型：通过环境变量覆盖 API 端点和模型名
+    if config.get("api_base"):
+        os.environ["PARATERA_BASE_URL"] = config["api_base"]
+        logger.info(f"[{config_name}] API 端点切换为: {config['api_base']}")
+    if config.get("chat_model"):
+        os.environ["CHAT_MODEL"] = config["chat_model"]
+
+    # 重新加载 llm_client 以应用新环境变量
+    import utils.llm_client as _llm
+    importlib.reload(_llm)
 
     # 生成预测
     predictions = []

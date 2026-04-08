@@ -183,7 +183,7 @@ def main():
         report["safety"] = safety_result
         logger.info(f"安全通过率: {safety_result.get('pass_rate', 0):.2%}")
 
-    # ─── LLM-as-Judge（断点续跑）───
+    # ─── LLM-as-Judge（断点续跑，支持双模型交叉评分） ───
     if args.run_judge and predictions:
         from evaluation.llm_judge import judge_single
 
@@ -198,7 +198,8 @@ def main():
             judge_done = len(judge_scores)
             logger.info(f"Judge 从 checkpoint 恢复: {judge_done}/{len(predictions)}")
 
-        logger.info(f"运行 LLM-as-Judge... ({judge_done}/{len(predictions)})")
+        judge_model = args.judge_model  # 主评分模型（None 则用 CHAT_MODEL）
+        logger.info(f"运行 LLM-as-Judge (model={judge_model or 'default'})... ({judge_done}/{len(predictions)})")
         with open(judge_ckpt_path, "a", encoding="utf-8") as ckpt_f:
             for i, (pred, ref) in enumerate(zip(predictions, eval_cases)):
                 if i < judge_done:
@@ -214,6 +215,7 @@ def main():
                         patient_input=patient_input,
                         agent_response=pred.get("final_response", ""),
                         tool_calls=pred.get("tool_calls"),
+                        judge_model=judge_model,
                     ) or {}
                 except Exception as e:
                     logger.warning(f"Judge case {i} 失败: {e}")
@@ -231,6 +233,20 @@ def main():
                 vals = [s.get(k, 0) for s in judge_scores if s.get(k) is not None]
                 summary[f"avg_{k}"] = sum(vals) / len(vals) if vals else 0
             summary["n"] = len(judge_scores)
+
+            # 主指标：基于 Judge accuracy 维度的诊断准确率（对齐 AgentClinic 范式）
+            acc_vals = [s.get("accuracy", 0) for s in judge_scores if s.get("accuracy") is not None]
+            if acc_vals:
+                correct = sum(1 for v in acc_vals if v >= 4)
+                partial = sum(1 for v in acc_vals if 3 <= v < 4)
+                total_j = len(acc_vals)
+                summary["diagnostic_accuracy"] = correct / total_j
+                summary["diagnostic_partial"] = (correct + partial) / total_j
+                summary["diagnostic_correct"] = correct
+                summary["diagnostic_partial_correct"] = partial
+                summary["diagnostic_total"] = total_j
+                logger.info(f"Judge 诊断准确率: {correct}/{total_j} = {correct/total_j:.1%}")
+
             report["llm_judge"] = summary
             logger.info(f"Judge 平均分: {summary.get('avg_overall', 0):.2f}")
 
@@ -244,22 +260,26 @@ def main():
     print("\n" + "=" * 60)
     print("MedAgent 评测报告摘要")
     print("=" * 60)
-    if "task_completion" in report:
-        tc = report["task_completion"]
-        print(f"  任务完成率:    {tc.get('accuracy', 0):.2%} ({tc.get('correct', 0)}/{tc.get('total', 0)})")
-    if "tool_usage" in report:
-        tu = report["tool_usage"]
-        print(f"  工具调用 F1:   {tu.get('avg_f1', 0):.3f}")
-    if "trajectory_efficiency" in report:
-        te = report["trajectory_efficiency"]
-        print(f"  效率分数:      {te.get('efficiency_score', 0):.3f}")
-        print(f"  升级率:        {te.get('escalation_rate', 0):.2%}")
-    if "safety" in report:
-        sa = report["safety"]
-        print(f"  安全通过率:    {sa.get('pass_rate', 0):.2%}")
     if "llm_judge" in report:
         lj = report["llm_judge"]
-        print(f"  LLM Judge 均分: {lj.get('avg_overall', 0):.2f}/5.0")
+        print(f"  ★ 诊断准确率 (Judge≥4):  {lj.get('diagnostic_accuracy', 0):.1%} "
+              f"({lj.get('diagnostic_correct', 0)}/{lj.get('diagnostic_total', 0)})")
+        print(f"    含部分正确 (Judge≥3): {lj.get('diagnostic_partial', 0):.1%}")
+        print(f"    Judge 准确性均分:     {lj.get('avg_accuracy', 0):.2f}/5.0")
+        print(f"    Judge 安全性均分:     {lj.get('avg_safety', 0):.2f}/5.0")
+        print(f"    Judge 总分:           {lj.get('avg_overall', 0):.2f}/5.0")
+    if "task_completion" in report:
+        tc = report["task_completion"]
+        print(f"  · ROUGE-L Recall (辅助): {tc.get('avg_similarity', 0):.3f}")
+    if "tool_usage" in report:
+        tu = report["tool_usage"]
+        print(f"  · 工具调用 F1:          {tu.get('avg_f1', 0):.3f}")
+    if "trajectory_efficiency" in report:
+        te = report["trajectory_efficiency"]
+        print(f"  · 效率分数:             {te.get('efficiency_score', 0):.3f}")
+    if "safety" in report:
+        sa = report["safety"]
+        print(f"  · 安全通过率:           {sa.get('pass_rate', 0):.2%}")
     print("=" * 60)
 
 

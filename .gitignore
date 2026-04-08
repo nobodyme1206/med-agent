@@ -2,14 +2,21 @@
 .env
 __pycache__/
 *.pyc
+.pytest_cache/
 
-# Data artifacts
+# Data artifacts (generated / can be rebuilt)
 data/faiss_index/
 data/drug_kb/*.pkl
 data/guidelines/*.index
 data/guidelines/*.pkl
 data/synth/trajectories/*.json
+data/synth/trajectories/*.jsonl
 data/synth/sft_data/*.json
+data/memory/
+
+# Logs & checkpoints
+*.log
+*_checkpoint.jsonl
 
 # Model checkpoints
 output/

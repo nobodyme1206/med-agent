@@ -34,10 +34,10 @@ def _load_env():
 
 _load_env()
 
-API_KEY = os.environ.get("PARATERA_API_KEY", "")
-BASE_URL = os.environ.get("PARATERA_BASE_URL", "https://ai.paratera.com/v1")
-CHAT_MODEL = os.environ.get("CHAT_MODEL", "Qwen2.5-7B-Instruct")
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "GLM-Embedding-3")
+API_KEY = os.environ.get("PARATERA_API_KEY", "0")
+BASE_URL = os.environ.get("PARATERA_BASE_URL", "http://localhost:8000/v1")
+CHAT_MODEL = os.environ.get("CHAT_MODEL", "default")
+EMBED_MODEL = os.environ.get("EMBED_MODEL", "default")
 
 
 def _get_client():
@@ -59,8 +59,13 @@ def chat(
     max_tokens: int = 1024,
     max_retries: int = 3,
     system: Optional[str] = None,
+    response_format: Optional[Dict[str, str]] = None,
 ) -> Optional[str]:
-    """调用chat completion，返回文本。失败返回None。"""
+    """调用chat completion，返回文本。失败返回None。
+
+    Args:
+        response_format: 可选，如 {"type": "json_object"} 强制 JSON 输出
+    """
     client = _get_client()
     model = model or CHAT_MODEL
     messages = []
@@ -68,14 +73,18 @@ def chat(
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
+    kwargs = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if response_format:
+        kwargs["response_format"] = response_format
+
     for attempt in range(max_retries):
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            resp = client.chat.completions.create(**kwargs)
             if hasattr(resp, "usage") and resp.usage:
                 _token_counter["total"] += getattr(resp.usage, "total_tokens", 0)
             return resp.choices[0].message.content.strip()

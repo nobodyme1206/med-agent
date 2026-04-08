@@ -69,6 +69,17 @@ def interpret_lab_result(test_name: str, value: float, unit: str = "") -> Dict:
     high = ref.get("high", float("inf"))
     ref_unit = ref.get("unit", "")
 
+    # LLM 可能传入字符串，强制转 float
+    try:
+        value = float(value)
+    except (ValueError, TypeError):
+        return {
+            "found": True,
+            "test_name": matched_key,
+            "value": value,
+            "message": f"无法解析数值: {value}",
+        }
+
     if value < low:
         status = "偏低"
         causes = ref.get("low_causes", [])

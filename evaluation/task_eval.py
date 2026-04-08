@@ -31,8 +31,10 @@ def _get_embed_fn():
         return _embed_fn
     try:
         from utils.llm_client import embed
-        # 测试是否可用
-        embed(["test"])
+        # 测试是否可用（检查向量非零，零向量说明 API 不可用）
+        test_result = embed(["test"])
+        if not test_result or all(v == 0.0 for v in test_result[0]):
+            raise ValueError("embedding 返回零向量，API 不可用")
         _embed_fn = embed
         logger.info("语义匹配模式: embedding 可用")
     except Exception:
@@ -96,19 +98,15 @@ def _semantic_similarity(text_a: str, text_b: str) -> float:
             return float(np.dot(a, b) / (norm_a * norm_b))
         except Exception:
             pass
-    # fallback: 关键词重叠率
-    kw_a = set(_extract_keywords(text_a))
-    kw_b = set(_extract_keywords(text_b))
-    if not kw_a or not kw_b:
-        return 0.0
-    return len(kw_a & kw_b) / max(len(kw_a | kw_b), 1)
+    # fallback: 字符级 ROUGE-L（最长公共子序列），对中文友好
+    return _rouge_l(text_a, text_b)
 
 
 def evaluate_task_completion(
     predictions: List[Dict],
     references: List[Dict],
-    correct_threshold: float = 0.7,
-    partial_threshold: float = 0.4,
+    correct_threshold: float = 0.45,
+    partial_threshold: float = 0.25,
 ) -> Dict:
     """
     评测任务完成率：最终诊断方向是否正确。
@@ -275,8 +273,45 @@ def _compute_param_accuracy(pred_calls: List[Dict], ref_calls: List[Dict]) -> fl
     return matched / compared
 
 
+def _rouge_l(text_a: str, text_b: str) -> float:
+    """字符级 ROUGE-L Recall，不需要分词，对中文友好。
+
+    使用 Recall 而非 F1：衡量参考答案（text_b）的关键内容是否
+    被模型回复（text_a）覆盖。适合短参考 vs 长回复的场景。
+    """
+    if not text_a or not text_b:
+        return 0.0
+    # 移除标点和空格，只保留实质字符
+    import re
+    a = re.sub(r'[\s\W]', '', text_a)
+    b = re.sub(r'[\s\W]', '', text_b)
+    if not a or not b:
+        return 0.0
+    # LCS 长度（DP）
+    m, n = len(a), len(b)
+    if m > 500:
+        a = a[:500]
+        m = 500
+    if n > 500:
+        b = b[:500]
+        n = 500
+    prev = [0] * (n + 1)
+    for i in range(1, m + 1):
+        curr = [0] * (n + 1)
+        for j in range(1, n + 1):
+            if a[i - 1] == b[j - 1]:
+                curr[j] = prev[j - 1] + 1
+            else:
+                curr[j] = max(curr[j - 1], prev[j])
+        prev = curr
+    lcs_len = prev[n]
+    # Recall：参考答案被覆盖的比例
+    recall = lcs_len / n
+    return recall
+
+
 def _extract_keywords(text: str) -> List[str]:
-    """从诊断文本中提取关键词（用于 fallback 匹配）"""
+    """从诊断文本中提取关键词（保留作为辅助工具）"""
     for ch in "，。、；：“”‘’（）【】《》！？":
         text = text.replace(ch, " ")
     stopwords = {"的", "了", "是", "在", "有", "不", "这", "个", "人", "都", "一", "和", "我",

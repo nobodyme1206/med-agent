@@ -74,11 +74,17 @@ def route_patient(state: AgentState) -> AgentState:
             "escalate_reason": "检测到急危重症症状，建议立即就医",
         }
 
-    # LLM 分诊
+    # LLM 分诊（使用 JSON mode 保证输出格式）
     system = ROUTER_SYSTEM_PROMPT.format(departments="、".join(DEPARTMENTS))
     prompt = f"{ROUTER_EXAMPLES}\n\n现在请分诊以下患者：\n患者：{last_user_msg}\n输出："
 
-    response = chat(prompt, system=system, temperature=0.1, max_tokens=256)
+    response = chat(
+        prompt,
+        system=system,
+        temperature=0.1,
+        max_tokens=256,
+        response_format={"type": "json_object"},
+    )
 
     if not response:
         logger.error("Router: LLM 调用失败，默认分配内科")
@@ -90,7 +96,7 @@ def route_patient(state: AgentState) -> AgentState:
 
     # 解析 JSON 输出
     try:
-        # 提取 JSON 部分
+        # JSON mode 保证输出是合法 JSON，但仍做容错
         json_str = response
         if "```" in json_str:
             json_str = json_str.split("```")[1].strip()
@@ -99,7 +105,6 @@ def route_patient(state: AgentState) -> AgentState:
         result = json.loads(json_str)
     except (json.JSONDecodeError, IndexError):
         logger.warning(f"Router: JSON 解析失败，原始输出: {response[:200]}")
-        # 回退：在输出中查找科室名
         department = "内科"
         for dept in DEPARTMENTS:
             if dept in response:

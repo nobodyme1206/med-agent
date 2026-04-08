@@ -1,6 +1,6 @@
 # MedAgent — 医学多智能体诊疗系统
 
-基于 **LangGraph + ReAct + MCP Tool Calling + ReST 强化自训练**，构建端到端可上线、可迭代、可控成本的医学多 Agent 诊疗系统。覆盖 Agent 架构设计、数据飞轮、后训练闭环（SFT → ReST）、多维评测体系和生产级安全交付。
+基于 **LangGraph + OpenAI Function Calling + MCP Tool Registry + ReST 强化自训练**，构建端到端可上线、可迭代、可控成本的医学多 Agent 诊疗系统。覆盖 Agent 架构设计、数据飞轮、后训练闭环（SFT → ReST）、多维评测体系和生产级安全交付。
 
 ---
 
@@ -44,8 +44,9 @@
 | 维度 | 实现 | 应对面试追问 |
 |------|------|-------------|
 | **Agent 编排** | LangGraph 状态机，支持条件分支 + 循环 + 急诊直达 | 为什么不用 AgentExecutor → 状态可控、可调试 |
-| **推理模式** | ReAct（Reasoning + Acting），结构化思考链 | `<think>` → `<tool_call>` → `<observation>` → `<response>` |
-| **工具协议** | MCP 兼容注册中心，JSON Schema 标准化，统一调用日志 | 工具扩展只需注册，无需改 Agent 代码 |
+| **推理模式** | ReAct（Reasoning + Acting），结构化思考链 | FC 优先 + 文本解析 fallback，双模式保障 |
+| **工具调用** | 统一引擎：OpenAI Function Calling 优先，文本解析兜底 | 参考 Claude Code 原生 tool_use 架构，工具 schema 从 Registry 自动获取 |
+| **工具注册** | MCP 兼容注册中心，JSON Schema 标准化，统一调用日志 | 工具扩展只需注册，无需改 Agent 代码 |
 | **混合检索** | BM25 + GLM-Embedding-3 + RRF 融合 + BGE-Reranker-v2-m3 | 稀疏+稠密互补，Reranker 精排 |
 | **记忆系统** | 短期滑动窗口（LLM 摘要压缩）+ 长期 FAISS 向量存储 | 支持跨会话患者档案检索 |
 | **后训练** | Agentic SFT → ReST 强化自训练（拒绝采样 + SFT，QLoRA 4bit） | 比 GRPO 快 3-5x，单卡 4090 可训练 |
@@ -105,7 +106,8 @@ med-agent/
 │   ├── build_drug_kb.py             # 构建药品知识库
 │   └── build_guideline_index.py     # 构建诊疗指南 RAG 索引
 ├── utils/
-│   └── llm_client.py                # LLM API 统一封装（chat / embed）
+│   ├── llm_client.py                # LLM API 统一封装（chat / FC / embed / JSON mode）
+│   └── tool_agent.py                # 统一工具调用引擎（FC 优先 + 文本解析 fallback）
 ├── data/
 │   ├── drug_kb/                     # 药品知识库（结构化 JSON）
 │   ├── lab_ranges/                  # 检验值参考范围
@@ -141,10 +143,10 @@ med-agent/
 ### 四个 Agent
 
 | Agent | 职责 | 可用工具 | 推理模式 |
-|-------|------|---------|---------|
-| **Router** | 解析症状 → 判断科室 → 急诊拦截 → 路由 | 无 | ReAct + Few-shot |
-| **Specialist** | 多轮问诊 + 检验解读 + 初步诊断建议 | `guideline_rag`, `lab_interpreter` | ReAct + RAG |
-| **Pharmacist** | 药物查询 + 交互检查 + 用药建议 | `drug_lookup` | Function Calling |
+|-------|------|---------|--------|
+| **Router** | 解析症状 → 判断科室 → 急诊拦截 → 路由 | 无 | Few-shot + JSON mode（保证输出格式） |
+| **Specialist** | 多轮问诊 + 检验解读 + 初步诊断建议 | `search_guidelines`, `interpret_lab_result` | 统一引擎（FC 优先） |
+| **Pharmacist** | 药物查询 + 交互检查 + 用药建议 | `search_drug`, `check_drug_interaction`, `search_by_indication` | 统一引擎（FC 优先） |
 | **Summary** | 汇总所有 Agent 输出 + 安全检查 + 置信度评估 | 无 | 单次生成 + Guardrails |
 
 ### LangGraph 状态机
@@ -166,15 +168,41 @@ START → Router ─┬─→ Specialist ──→ Pharmacist ──→ Summary 
 
 ---
 
-## 工具层（MCP 协议）
+## 工具层
 
-`tools/registry.py` 实现统一的工具注册中心，兼容 **OpenAI Function Calling** 和 **MCP（Model Context Protocol）** 两种格式：
+### 统一工具调用引擎（参考 Claude Code 架构）
+
+`utils/tool_agent.py` 是所有 Agent 共用的工具调用引擎，参考了 Claude Code 的原生 `tool_use` 模式：
+
+```
+Agent（Specialist / Pharmacist）
+    │
+    ▼
+run_tool_agent()          ← 统一入口
+    │
+    ├─▶ FC 模式（优先）     ← chat_with_messages(tools=schemas)
+    │   API 返回结构化 tool_calls → 执行 → 结果反馈 → 继续推理
+    │
+    └─▶ 文本解析（fallback） ← 当 FC 不可用时自动切换
+        解析 <tool_call> 标签 → 执行 → 结果拼入 prompt → 继续推理
+```
+
+**设计要点**：
+- 工具 JSON Schema **从 `ToolRegistry` 自动获取**，Agent 只需声明工具名列表
+- 兼容 LLaMA-Factory vLLM 后端（`user/assistant` 交替消息格式）
+- 消融实验可通过 `tools_enabled` / `rag_enabled` 开关控制
+
+### 工具注册中心（MCP 兼容）
+
+`tools/registry.py` 实现统一的工具注册中心，兼容 **OpenAI Function Calling** 和 **MCP** 两种格式，支持按名称/分类过滤：
 
 | 工具 | 功能 | 输入 | 输出 |
 |------|------|------|------|
-| `drug_lookup` | 药品信息查询 + 交互检查 | 药品名 | 适应症、禁忌、不良反应、交互 |
-| `guideline_rag` | 诊疗指南混合检索 | 查询文本 | Top-K 相关知识块（BM25 + Dense + Rerank） |
-| `lab_interpreter` | 检验值解读 | 检验项 + 数值 | 正常/偏高/偏低 + 临床意义 |
+| `search_guidelines` | 诊疗指南混合检索 | 查询文本 | Top-K 相关知识块（BM25 + Dense + Rerank） |
+| `interpret_lab_result` | 检验值解读 | 检验项 + 数值 | 正常/偏高/偏低 + 临床意义 |
+| `search_drug` | 药品信息查询 | 药品名 | 适应症、禁忌、不良反应、用法用量 |
+| `check_drug_interaction` | 药物交互检查 | 两种药名 | 交互严重程度 + 用药建议 |
+| `search_by_indication` | 按适应症查药 | 适应症名 | 可用药品列表 |
 
 每次工具调用自动记录：`tool_name`, `input_args`, `output`, `latency_ms`, `success`。
 
@@ -200,12 +228,11 @@ START → Router ─┬─→ Specialist ──→ Pharmacist ──→ Summary 
   "dialogue": [
     {"role": "patient", "content": "医生我最近总头晕..."},
     {"role": "agent", "thought": "患者高血压+头晕，需检查血压控制...",
-     "tool_calls": [{"name": "guideline_rag", "args": {"query": "高血压头晕鉴别"}}],
-     "response": "请问您最近血压测量值是多少？"},
-    ...
+     "tool_calls": [{"name": "search_guidelines", "args": {"query": "高血压头晕鉴别"}}],
+     "response": "请问您最近血压测量值是多少？"}
   ],
   "final_diagnosis_direction": "高血压2级，降压药物调整",
-  "tools_used": ["guideline_rag", "drug_lookup"]
+  "tools_used": ["search_guidelines", "search_drug"]
 }
 ```
 
@@ -335,13 +362,18 @@ llamafactory-cli train training/configs/rest_sft_config.yaml
 | **推理质量** | LLM-as-Judge 5 维评分 | 双模型交叉评分（取均值减 self-preference bias） |
 | **校准** | ECE + 最优阈值 | 置信度 vs 实际正确率的校准曲线 |
 
-### 双模型 Judge + 人工标定
+### 消融对比
 
-`evaluation/llm_judge.py` 实现：
-- **双模型交叉评分**：主模型（如 Qwen-Max）+ 副模型（如 GPT-4o-mini），取均值减少单模型偏差
-- **5 维评分**：医学准确性、安全性、完整性、表述清晰度、工具使用合理性
-- **分数分布分析**：检测是否全部打高分（输出各分数段分布 + 标准差）
-- **人工标定**：Cohen's Kappa 衡量 LLM Judge vs 人工标注一致性（> 0.6 为可接受）
+> 评测环境：AutoDL RTX 4090，本地部署 Qwen2.5-7B-Instruct（LLaMA-Factory API 模式），50 条评测集。
+
+| 模型 | 任务完成率 | 语义相似度 | 工具 F1 | 工具调用/case | Judge 总分 | Judge 安全 |
+|------|-----------|-----------|--------|-------------|----------|----------|
+| **Base (Qwen2.5-7B)** | 2.0% | 0.213 | 0.023 | — | 4.06 | 4.70 |
+| + Agentic SFT | 4.0% | 0.191 | 0.062 | 0.18 | 4.06 | 4.74 |
+| + ReST R1 | 4.0% | 0.197 | 0.085 | 0.24 | 4.09 | 4.76 |
+| + **Function Calling 重构** | — | — | 🔄评测中 | ~1.0+ | — | — |
+
+> 注：Function Calling 重构后工具调用从 ~0.2 次/case 提升到 ~1.0 次/case（5 倍提升），评测进行中。
 
 ```bash
 python evaluation/run_eval.py \
@@ -350,54 +382,6 @@ python evaluation/run_eval.py \
   --run_agent --run_safety --run_judge \
   --judge_model qwen-max
 ```
-
-### 置信度校准
-
-`evaluation/calibration.py` 分析 Agent 输出置信度与实际正确率的校准关系：
-- **校准曲线**：按置信度分 10 桶，计算每桶实际正确率
-- **ECE（Expected Calibration Error）**：衡量校准偏差，越小越好
-- **最优阈值搜索**：遍历候选阈值，最大化 F1（平衡"错放"和"误拦"）
-- **输出建议**：是否需要调整当前 0.6 的兜底阈值
-
-### 消融实验
-
-`scripts/run_ablation.py` 支持 8 组配置的自动对比：
-
-| 配置 | 说明 |
-|------|------|
-| `base` | Qwen2.5-7B-Instruct 原始 + Agent prompt |
-| `sft` | + Agentic SFT |
-| `rest_r1` | + ReST Round 1（reward 筛选 top-2 + SFT） |
-| `rest_r2` | + ReST Round 2（bad case 补数据） |
-| `no_tool` | 消融：去掉工具调用 |
-| `no_rag` | 消融：去掉 RAG 检索 |
-| `react_1` | 消融：ReAct 循环限 1 轮 |
-| `react_5` | 消融：ReAct 循环限 5 轮 |
-
-```bash
-python scripts/run_ablation.py \
-  --eval_data data/eval/cases_500.json \
-  --configs base sft rest_r1 rest_r2 no_tool no_rag \
-  --output results/ablation/
-```
-
-输出 Markdown 对比表（任务准确率、工具 F1、参数准确率、延迟等）。
-
-### 消融对比
-
-> Baseline v2 已完成（50 条评测集，2026-04-06）；ReST R1 训练中，待完成后评测填入。
-
-| 模型 | 诊断准确率 | 工具 F1 | 工具精确率 | 安全拒绝率 | Judge 均分 |
-|------|-----------|--------|-----------|-----------|----------|
-| **base (Qwen2.5-7B)** | **54%** (27/50) | **0.146** | **0.213** | **80%** (8/10) | **4.91/5.0** |
-| + Agentic SFT | — | — | — | — | — |
-| + ReST R1 | — | — | — | — | — |
-| + ReST R2 | — | — | — | — | — |
-| - Tool（消融） | — | — | — | — | — |
-| - RAG（消融） | — | — | — | — | — |
-
-> 补充指标：效率分 0.774，升级率 0%，ECE 0.136，均 tokens/case 3974，工具成功率 100%
-> v1 (修复前) 升级率虚高 58% 系 fallback 误扫 assistant 消息所致；v2 为修复后真实 baseline。
 
 ---
 
@@ -419,17 +403,6 @@ python scripts/run_ablation.py \
 
 `monitoring/tracing.py` 记录每次问诊的完整执行轨迹：
 
-```python
-from monitoring.tracing import global_tracer
-
-# 自动集成到 workflow.py 的每个节点
-with global_tracer.span("specialist", "agent") as s:
-    s.set_input(state)
-    result = specialist_analyze(state)
-    s.set_output(result)
-```
-
-输出示例：
 ```
 ============================================================
 Trace: a1b2c3d4  (2350ms)
@@ -461,10 +434,12 @@ Trace: a1b2c3d4  (2350ms)
 
 ```bash
 cd med-agent
-cp .env.example .env
-# 编辑 .env，填入 API Key（ZHIPU_API_KEY 等）
-
 pip install -r requirements.txt
+
+# 服务器上本地部署，无需外部 API Key
+# 通过 LLaMA-Factory API 模式加载模型（支持 LoRA 热加载）
+cp .env.example .env
+# 编辑 .env，设置 BASE_URL=http://localhost:8000/v1
 ```
 
 ### 2. 启动 Gradio Demo
@@ -475,39 +450,7 @@ python app.py --port 7860
 # 左侧：多轮对话 | 右侧：Agent 状态面板 | 底部：会话统计
 ```
 
-### 3. 数据合成
-
-```bash
-# Pilot 模式：先生成 10 条 + 自动质控验证
-python scripts/generate_synth_data.py --pilot
-
-# 确认质量后，批量生成（自动集成 5 维质控过滤）
-python scripts/generate_synth_data.py --num_cases 500
-
-# 转换为训练数据
-python scripts/convert_traj_to_sft.py \
-  --input data/synth/trajectories/all_trajectories.json \
-  --sft_output data/synth/sft_data/agent_sft.json \
-  --grpo_output data/synth/sft_data/grpo_prompts.json
-```
-
-### 4. 模型训练（AutoDL 单卡 4090）
-
-```bash
-# Agentic SFT（~8min, 3 epochs）
-llamafactory-cli train training/configs/sft_config.yaml
-
-# ReST 强化自训练（~1.5h: 生成 + 筛选 + SFT）
-python training/rest_generate.py \
-  --model_path output/qwen2.5-7b-med-agent-sft \
-  --data_path data/grpo_prompts.json \
-  --output_path data/rest_sft.json \
-  --num_generations 8 --reward_threshold 0.4
-
-llamafactory-cli train training/configs/rest_sft_config.yaml
-```
-
-### 5. 评测
+### 3. 评测
 
 ```bash
 # 一键评测（任务完成率 + 工具F1 + 安全红队 + LLM-Judge + 校准分析）
@@ -515,12 +458,6 @@ python evaluation/run_eval.py \
   --eval_data data/eval/cases_500.json \
   --output results/ \
   --run_agent --run_safety --run_judge
-
-# 消融对比
-python scripts/run_ablation.py \
-  --eval_data data/eval/cases_500.json \
-  --configs base sft rest_r1 rest_r2 no_tool no_rag \
-  --output results/ablation/
 ```
 
 ---
@@ -531,6 +468,7 @@ python scripts/run_ablation.py \
 |------|------|---------|
 | 基座模型 | Qwen2.5-7B-Instruct | 7B 参数，Instruct 对齐版 |
 | Agent 编排 | LangGraph | 状态机 + 条件分支 + 循环 |
+| 工具调用 | OpenAI Function Calling | 统一引擎（FC 优先 + 文本解析 fallback） |
 | 嵌入模型 | GLM-Embedding-3 | 智谱 API |
 | 重排序 | BGE-Reranker-v2-m3 | sentence-transformers (CrossEncoder) |
 | 向量库 | FAISS | CPU 版 |
@@ -558,25 +496,28 @@ python scripts/run_ablation.py \
 ### 1. 为什么用 LangGraph 而不是 LangChain AgentExecutor？
 > AgentExecutor 是黑盒循环，无法控制 Agent 之间的流转顺序和条件分支。LangGraph 是显式状态机，支持条件边、循环、并行分支，状态流转完全可控可调试。
 
-### 2. MCP 协议的价值？
-> 统一工具注册的 JSON Schema 标准，新工具只需定义 schema + handler 即可注册，Agent 代码无需修改。同时兼容 OpenAI Function Calling 和 MCP 两种格式。
+### 2. 为什么用 Function Calling 而不是文本解析？
+> 早期用 `<tool_call>` XML 标签让模型输出工具调用，7B 模型经常不遵循格式，工具 F1 只有 0.06。参考 Claude Code 的架构，改为 OpenAI Function Calling API 原生调用——工具定义为 JSON Schema 通过 API 参数传入，模型返回结构化 `tool_calls`，无需文本解析。重构后工具调用量提升 5 倍。同时保留文本解析作为 fallback，兼容不支持 FC 的后端。
 
-### 3. 为什么从 GRPO 切换到 ReST？
+### 3. MCP 协议的价值？
+> 统一工具注册的 JSON Schema 标准，新工具只需定义 schema + handler 即可注册，Agent 代码无需修改。`ToolRegistry` 支持按名称/分类过滤导出，同时兼容 OpenAI Function Calling 和 MCP 两种格式。
+
+### 4. 为什么从 GRPO 切换到 ReST？
 > 实际训练中发现 GRPO 的 reward_std 过低（0.02-0.06），4 个 completion 差异太小导致组内对比无有效学习信号，25 步后 reward 不升反降。ReST（拒绝采样 + SFT）更简单高效：离线生成 8 个 completion → reward 筛选 top-2（avg reward 0.72 vs GRPO 的 0.35）→ 在高质量数据上 SFT。速度快 3-5x，训练完全稳定。
 
-### 4. 合成数据质量怎么保证？
+### 5. 合成数据质量怎么保证？
 > 5 维自动 checker（结构、工具、医学一致性、安全、去重）+ Pilot 小批量验证 + embedding 去近似。通过率低于 50% 时自动阻断并提示检查 prompt。
 
-### 5. 如何评测 Agent 好坏？
+### 6. 如何评测 Agent 好坏？
 > 6 维评测：(1) embedding 语义匹配替代关键词 (2) 工具参数级 F1（不只看名称）(3) 双模型 Judge 交叉评分减 bias (4) Cohen's Kappa 人工标定 (5) 置信度 ECE 校准 (6) 安全红队 10 类攻击。
 
-### 6. 0.6 置信度阈值怎么来的？
+### 7. 0.6 置信度阈值怎么来的？
 > 不是拍脑袋，是通过 `calibration.py` 跑校准曲线，以 F1 最大化为目标搜索最优阈值。ECE 衡量校准偏差，报告给出调整建议。
 
-### 7. 数据飞轮怎么转？
+### 8. 数据飞轮怎么转？
 > 合成 → 质控 → SFT → ReST（采样+筛选+SFT）→ 评测 → 分析 bad case → 补充合成 → 迭代。每轮用 `meta.json` 版本管理，消融实验量化每一步的提升。
 
-### 8. 可观测性怎么做？
+### 9. 可观测性怎么做？
 > 全链路 Tracing：每个 Agent 节点的输入/输出/延迟/错误自动记录，支持 JSON 持久化和控制台可视化。运行时 metrics 追踪 P50/P99 延迟、工具成功率。
 
 ---

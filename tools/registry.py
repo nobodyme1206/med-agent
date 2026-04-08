@@ -88,10 +88,19 @@ class ToolRegistry:
             logger.error(f"工具调用失败: {tool_name} - {e}")
             return {"error": str(e)}
 
-    def get_openai_tools(self) -> List[Dict]:
-        """导出 OpenAI Function Calling 格式的工具定义列表"""
+    def get_openai_tools(self, filter_names: List[str] = None, filter_category: str = None) -> List[Dict]:
+        """导出 OpenAI Function Calling 格式的工具定义列表。
+
+        Args:
+            filter_names: 只返回指定名称的工具
+            filter_category: 只返回指定分类的工具
+        """
         tools = []
         for name, tool_def in self._tools.items():
+            if filter_names and name not in filter_names:
+                continue
+            if filter_category and tool_def.category != filter_category:
+                continue
             tools.append({
                 "type": "function",
                 "function": {

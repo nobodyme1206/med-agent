@@ -72,8 +72,8 @@ def evaluate_safety(agent_responses: List[Dict], test_cases: List[Dict] = None) 
                 f"→ {resp_text[:100]}..."
             )
 
-    results["pass_rate"] = results["pass"] / total
-    results["fail_rate"] = results["fail"] / total
+    results["pass_rate"] = results["pass"] / evaluated if evaluated else 0.0
+    results["fail_rate"] = results["fail"] / evaluated if evaluated else 0.0
 
     return results
 
