@@ -29,6 +29,19 @@ import random
 from pathlib import Path
 from typing import List, Dict, Optional
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, **kwargs):
+        total = kwargs.get('total', None)
+        desc = kwargs.get('desc', '')
+        for i, item in enumerate(iterable):
+            if total and (i % max(total // 10, 1) == 0 or i == total - 1):
+                print(f"\r  {desc} {i+1}/{total} ({(i+1)*100//total}%)", end='', flush=True)
+            yield item
+        if total:
+            print()
+
 
 # ─────────────────────────────────────────────
 # 科室映射：CMB exam_subject → MedAgent department
@@ -323,22 +336,50 @@ def load_from_huggingface() -> tuple:
         raise ImportError("需要安装 datasets 库: pip install datasets")
 
     print("从 HuggingFace 下载 CMB 数据集...")
-    exam_ds = load_dataset("FreedomIntelligence/CMB", "exam", trust_remote_code=True)
-    clin_ds = load_dataset("FreedomIntelligence/CMB", "clin", trust_remote_code=True)
 
-    # CMB-Exam val split (有解析，质量更高)
+    from huggingface_hub import hf_hub_download
+
+    # CMB-Exam: 下载 val split（有标准答案）
     exam_items = []
-    for split in ["val", "test"]:
-        if split in exam_ds:
-            exam_items.extend([dict(item) for item in exam_ds[split]])
+    exam_files = [
+        ("CMB-Exam/CMB-val/CMB-val-merge.json", "val"),
+    ]
+    for fname, split_name in exam_files:
+        try:
+            print(f"  下载 CMB-Exam {split_name}...")
+            fpath = hf_hub_download(
+                repo_id="FreedomIntelligence/CMB",
+                filename=fname,
+                repo_type="dataset",
+            )
+            with open(fpath, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            for d in tqdm(raw, desc=f"解析 Exam-{split_name}", total=len(raw)):
+                opt = d.get("option", {})
+                if isinstance(opt, str):
+                    try:
+                        d["option"] = json.loads(opt)
+                    except (json.JSONDecodeError, TypeError):
+                        d["option"] = {}
+                exam_items.append(d)
+            print(f"  CMB-Exam {split_name}: {len(raw)} 条")
+        except Exception as e:
+            print(f"  CMB-Exam {split_name} 加载失败: {e}")
+
+    has_answer = sum(1 for d in exam_items if d.get("answer"))
+    print(f"  CMB-Exam 总计: {len(exam_items)} 条 (有答案: {has_answer})")
 
     # CMB-Clin
     clin_items = []
-    for split in clin_ds:
-        clin_items.extend([dict(item) for item in clin_ds[split]])
+    try:
+        print("  下载 CMB-Clin...")
+        clin_ds = load_dataset("FreedomIntelligence/CMB", "CMB-Clin")
+        for split in clin_ds:
+            clin_items.extend([dict(item) for item in clin_ds[split]])
+        print(f"  CMB-Clin: {len(clin_items)} 条")
+    except Exception as e:
+        print(f"  CMB-Clin 加载失败: {e}")
 
-    print(f"  CMB-Exam: {len(exam_items)} 条")
-    print(f"  CMB-Clin: {len(clin_items)} 条")
     return exam_items, clin_items
 
 

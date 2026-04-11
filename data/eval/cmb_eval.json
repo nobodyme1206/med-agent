@@ -1,0 +1,1458 @@
+[
+  {
+    "patient_input": "右下腹痛并自扪及包块3小时。",
+    "expected_department": "普通外科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "腹外疝",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "0",
+      "title": "案例分析-腹外疝",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "反酸、烧心30年，咳嗽、咳痰、喘息5年，加重10个月。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "食管疾病 胃食管反流病",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "1",
+      "title": "食管疾病 案例分析-胃食管反流病",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "反复肛门部肿物脱出2年，便血1周。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "结、直肠与肛管疾病 痔",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "2",
+      "title": "结、直肠与肛管疾病 案例分析-痔",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现阴茎肿物3个月。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 阴茎癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "3",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-阴茎癌",
+      "qa_count": 1
+    }
+  },
+  {
+    "patient_input": "李XX，男，44岁，5年前，病人右侧输尿管结石于当地医院行碎石手术，术后反复出现双侧尿路结石。 1个月前，病人至我院体检，查血钙：3.1mmol/L。病程中，病人未诉骨骼、关节疼痛史，既往无肾脏疾病史。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "颈部疾病 甲状旁腺功能亢进",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "4",
+      "title": "颈部疾病 案例分析-甲状旁腺功能亢进",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "发现右侧上腹部无痛性肿块4个月",
+    "expected_department": "肾内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 肾母细胞瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "5",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-肾母细胞瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "左下胸车祸撞击7天，背重物晕厥2小时。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "腹部损伤 脾破裂",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "6",
+      "title": "腹部损伤 案例分析-脾破裂",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "上腹痛1个月，加重3天。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胆道疾病 肝外胆管结石",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "7",
+      "title": "胆道疾病 案例分析-肝外胆管结石",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "跌倒后下腹痛伴肉眼血尿、尿少1天",
+    "expected_department": "泌尿外科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "膀胱破裂",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "8",
+      "title": "案例分析-膀胱破裂",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "高血压3年余，查体发现左侧肾上腺占位3天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "嗜铬细胞瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "9",
+      "title": "案例分析-嗜铬细胞瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "杨立，男， 12岁，因活动后头晕、乏力、气促、心悸5年就诊。曾于当地医院检查发现“贫血”。为进一步诊治入院。查体：中度贫血貌，全身皮肤巩膜略黄染。肝肋下未触及，脾下极达脐水平线，质软，无压痛。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "脾疾病 脾相关性疾病",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "10",
+      "title": "脾疾病 案例分析-脾相关性疾病",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "进行性吞咽困难两周。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "食管疾病 食管癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "11",
+      "title": "食管疾病 案例分析-食管癌",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "头晕伴恶心10天余",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "颅内动静脉畸形破裂导致的蛛网膜下腔出血",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "12",
+      "title": "案例分析-颅内动静脉畸形破裂导致的蛛网膜下腔出血",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "腰痛伴左下肢放射痛1年，加重伴双下肢麻木1月。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "颈、腰椎退行性疾病 腰椎间盘突出症",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "13",
+      "title": "颈、腰椎退行性疾病 案例分析-腰椎间盘突出症",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "肝区胀痛伴乏力、食欲不振1个月。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "结、直肠与肛管疾病 结肠癌肝转移",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "14",
+      "title": "结、直肠与肛管疾病 案例分析-结肠癌肝转移",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "病人，33岁，青年男性，2月余无明显诱因出现头晕、视物模糊，遂至医院就诊，发现血压明显升高，最高血压238/137mmHg，病程中无明显心慌、胸闷、气促，无黑矇，无双下肢水肿等不适。予以替米沙坦氢氯噻嗪等控制血压，血压控制在160/105mmHg。病人无高血压、糖尿病及冠心病家族史。 头晕、视物模糊2月余。",
+    "expected_department": "心血管内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "肾血管性高血压",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "15",
+      "title": "案例分析-肾血管性高血压",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "病人陈XX，男，38岁，已婚14年，至今未育。因“发现左下腹包块渐大2年余”入院。病人两年前发现左下腹包块伴隐痛不适，无发热，无恶心、呕吐，二便正常，近期包块增大明显。既往于25年前在外院行双侧隐睾下降手术，术后左侧阴囊一直空虚，左侧腹股沟可触及小睾丸，右侧阴囊内可扪及睾丸。否认乙肝、结核、高血压、糖尿病、心脏病病史；否认食物药物过敏史；否认家族史。 门诊检查：左侧中下腹明显隆起，可扪及大小约5c",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "隐睾癌变",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "16",
+      "title": "案例分析-隐睾癌变",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "头痛伴左侧肢体乏力进行性加重2天",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "颅脑损伤 慢性硬膜下血肿",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "17",
+      "title": "颅脑损伤 案例分析-慢性硬膜下血肿",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现3年，右上腹隐痛10天。",
+    "expected_department": "普通外科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胆道疾病 胆囊结石",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "18",
+      "title": "胆道疾病 案例分析-胆囊结石",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "自触及左侧腹部肿块1周，伴血尿2天。",
+    "expected_department": "肾内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 肾癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "19",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-肾癌",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "左手示指扎伤3天，示指及大鱼际肿痛伴发热。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "手部急性化脓性细菌感染",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "20",
+      "title": "案例分析-手部急性化脓性细菌感染",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现左下肢红肿伴发热2天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "丹毒",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "21",
+      "title": "案例分析-丹毒",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "胸闷3周。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "原发性纵隔肿瘤 纵隔畸胎瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "22",
+      "title": "原发性纵隔肿瘤 案例分析-纵隔畸胎瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "活动咳嗽时不自主尿外漏7年，加重1年。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "女性压力性尿失禁",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "23",
+      "title": "案例分析-女性压力性尿失禁",
+      "qa_count": 4
+    }
+  },
+  {
+    "patient_input": "周XX，男，25岁，1年前因车祸致小肠损伤，行部分小肠切除吻合术。术中切除小肠约40cm。术后病人恢复良好，未诉特殊不适。1个月前病人无明显诱因突然出现腹痛、腹胀、停止排气排便，至急诊就诊，诊断为肠梗阻，急诊行剖腹探查术。术中发现小肠与腹壁多处粘连带压迫小肠肠管，距屈氏韧带60cm以下至距回盲部约25cm间小肠缺血坏死。遂切除坏死肠管，行空肠、回盲部端侧吻合 。 术后至今病人每日大便10余次，为水",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "小肠疾病 短肠综合征",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "24",
+      "title": "小肠疾病 案例分析-短肠综合征",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "2周前出现发热，1周出现左侧胸腔积液。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胸壁、胸膜疾病 急性脓胸",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "25",
+      "title": "胸壁、胸膜疾病 案例分析-急性脓胸",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "皮肤巩膜黄染6月余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胆道疾病 胆道闭锁",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "26",
+      "title": "胆道疾病 案例分析-胆道闭锁",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现头围增大24天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "矢状缝早闭",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "27",
+      "title": "案例分析-矢状缝早闭",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "病例资料\n男性病人，30岁，体重65kg，身高170cm，术前心脏超声提示：二尖瓣中重度关闭不全；拟在体外循环下行二尖瓣瓣置换术，常规开胸，建立体外循环，降温，灌注冷血4∶1心脏停搏液进行心肌保护，体外循环时间97分钟，升主动脉阻断时间64分钟，顺利停机。\n\n\n体外循环实施\n1.胸骨正中开胸，全身肝素化，肝素使用量？如何监测抗凝？\n2.需要哪些体外循环耗材？\n3.体外循环维持温度是多少？\n4.撤离",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "心脏疾病 二尖瓣置换的体外循环管理",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "28",
+      "title": "心脏疾病 案例分析-二尖瓣置换的体外循环管理",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "李XX，男，44岁，1年前，病人无意中扪及左侧颈前区包块，约鹌鹑蛋大小，随吞咽上下活动，不伴有压痛、声嘶、饮水呛咳、吞咽困难等不适。未予重视。一年来，病人自诉包块进行性增大，1个月前病人出现声音嘶哑，未诉饮水呛咳、吞咽困难等不适。",
+    "expected_department": "内分泌科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "颈部疾病 甲状腺癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "29",
+      "title": "颈部疾病 案例分析-甲状腺癌",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "突发全身抽搐伴意识丧失6天。",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "大脑胶质瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "30",
+      "title": "案例分析-大脑胶质瘤",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "车祸致意识障碍7小时",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "颅脑损伤 重型颅脑损伤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "31",
+      "title": "颅脑损伤 案例分析-重型颅脑损伤",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "上腹不适伴后背疼痛2个月，皮肤黄染1个月",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胰腺疾病 胰腺癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "32",
+      "title": "胰腺疾病 案例分析-胰腺癌",
+      "qa_count": 4
+    }
+  },
+  {
+    "patient_input": "病人男性，45岁，建筑工人。因“进食后腹胀伴呕吐2月余”来院就诊。近2个月来，病人渐出现饱腹感、进食后呕吐，呕吐物含有宿食，不含胆汁。既往有十二指肠球部溃疡病史，未行正规治疗。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "酸碱平衡失调",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "33",
+      "title": "案例分析-酸碱平衡失调",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "腹痛伴巩膜黄染2周。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "外科休克 肝胆胰术后失血性休克一例",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "34",
+      "title": "外科休克 案例分析-肝胆胰术后失血性休克一例",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "高血压1年余，肢体无力1周余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "原发性醛固酮增多症",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "35",
+      "title": "案例分析-原发性醛固酮增多症",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "颈左后部皮肤红肿7天，发热伴腐败臭味分泌物流出4天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "痈",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "36",
+      "title": "案例分析-痈",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "外伤致左膝关节疼痛，活动受限3小时。",
+    "expected_department": "风湿免疫科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "下肢骨、关节损伤 胫骨平台骨折",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "37",
+      "title": "下肢骨、关节损伤 案例分析-胫骨平台骨折",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "男性，59岁。主因“上腹部隐痛不适伴食欲减退三个月”来我院门诊就诊。病人三个月来感觉上腹正中剑突下方疼痛，为持续性隐痛，偶有反酸和嗳气症状。无进食哽咽感，无腹胀，无呕吐。按“慢性胃炎”服用“胃粘膜保护剂”治疗，效果不佳。症状于近日有所加重。发病以来，食欲减退明显，体重下降5公斤，大小便正常。既往：10年前因间断上腹痛于外院行胃镜检查诊断为“慢性胃炎，幽门螺杆菌（+）”，未行规律药物治疗，后未复查。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "胃十二指肠疾病 胃癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "38",
+      "title": "胃十二指肠疾病 案例分析-胃癌",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "无明显诱因出现皮肤黄染、乏力，伴恶心、呕吐2周余。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "急性肝衰竭",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "39",
+      "title": "案例分析-急性肝衰竭",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "头晕伴进行性意识障碍14+小时",
+    "expected_department": "神经内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "脑疝",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "40",
+      "title": "案例分析-脑疝",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "头痛伴左侧肢体乏力进行性加重2天",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "烟雾病导致的蛛网膜下腔出血",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "41",
+      "title": "案例分析-烟雾病导致的蛛网膜下腔出血",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "发现右手被机器压伤致疼痛流血一小时。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "手外伤及断肢（指）再植",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "42",
+      "title": "案例分析-手外伤及断肢（指）再植",
+      "qa_count": 1
+    }
+  },
+  {
+    "patient_input": "病人男性，65岁，体检发现PSA异常升高，行前列腺系统穿刺病理提示前列腺癌1月。",
+    "expected_department": "泌尿外科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 前列腺癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "43",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-前列腺癌",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "咳嗽3个月，发热伴痰中带血1个月。",
+    "expected_department": "呼吸内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "肺部疾病 原发性肺癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "44",
+      "title": "肺部疾病 案例分析-原发性肺癌",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "大便习惯改变伴黑便2月余。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "结、直肠与肛管疾病 家族性腺瘤性息肉病",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "45",
+      "title": "结、直肠与肛管疾病 案例分析-家族性腺瘤性息肉病",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "突发头痛20天，再次发作头痛6天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "颅内动脉瘤破裂导致的蛛网膜下腔出血",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "46",
+      "title": "案例分析-颅内动脉瘤破裂导致的蛛网膜下腔出血",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现右侧阴囊内占位1月余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 睾丸肿瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "47",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-睾丸肿瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "间断发热半月，上腹胀痛不适1周。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "肝疾病 囊型肝包虫病合并胆瘘的诊疗",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "48",
+      "title": "肝疾病 案例分析-囊型肝包虫病合并胆瘘的诊疗",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "病人男，22岁，因左侧阴囊坠胀不适1年入院。平素久站或运动后症状加重，平卧休息后好转。精 液分析提示少、弱精子症。 左侧阴囊坠胀不适1年余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "精索静脉曲张",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "49",
+      "title": "案例分析-精索静脉曲张",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "腹痛、腹胀、发热半月，皮肤黄染 1周。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "急性化脓性腹膜炎 膈下脓肿",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "50",
+      "title": "急性化脓性腹膜炎 案例分析-膈下脓肿",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "腹痛高热3天，伴皮肤黄染1天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胆道疾病 胆管扩张",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "51",
+      "title": "胆道疾病 案例分析-胆管扩张",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "胆囊结石5年余；胆总管结石行ERCP术后3年余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "急腹症的诊断与鉴别诊断 胆管炎",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "52",
+      "title": "急腹症的诊断与鉴别诊断 案例分析-胆管炎",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "车祸外伤术后多脏器功能障碍3天。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "急性化脓性腹膜炎 腹腔间隔室综合征",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "53",
+      "title": "急性化脓性腹膜炎 案例分析-腹腔间隔室综合征",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "突发剧烈胸背部撕裂样疼痛4小时。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "胸主动脉疾病 急性Stanford B 型主动脉夹层",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "54",
+      "title": "胸主动脉疾病 案例分析-急性Stanford B 型主动脉夹层",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "关××，男，75岁，因体检发现甲状腺占位2周，自述饮水呛咳，无明显声音嘶哑等伴随症状；今为行 手术治疗收入外科 既往史、个人史 （1）既往史",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "全身麻醉术前评估和准备",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "55",
+      "title": "案例分析-全身麻醉术前评估和准备",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "肢端肥大十余年，视力下降半年。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "垂体腺瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "56",
+      "title": "案例分析-垂体腺瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发作性低血糖10余年，加重2.5年。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "胰腺疾病 胰岛素瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "57",
+      "title": "胰腺疾病 案例分析-胰岛素瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "无痛性肉眼血尿1月余。",
+    "expected_department": "泌尿外科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 膀胱癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "58",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-膀胱癌",
+      "qa_count": 4
+    }
+  },
+  {
+    "patient_input": "体型明显发胖十年余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "肥胖症",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "59",
+      "title": "案例分析-肥胖症",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "左手被致肿痛24小时",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "烧伤、冻伤、蛇咬伤、犬咬伤、虫蛰伤 蛇咬伤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "60",
+      "title": "烧伤、冻伤、蛇咬伤、犬咬伤、虫蛰伤 案例分析-蛇咬伤",
+      "qa_count": 2
+    }
+  },
+  {
+    "patient_input": "女性，29岁。主因“间断上腹痛1月余，胃镜发现粘膜下占位2日”来我院门诊就诊。病人一个月来感觉上腹正中隐痛，为间歇性隐痛，偶有反酸和嗳气症状。无进食哽咽感，无呕吐，大小便正常。一周前就诊于我院门诊，常规查体和专科查体未见明显异常。便潜血（+）；血红蛋白：98g/L，肿瘤标志物正常。行胃镜检查提示胃大弯粘膜下隆起肿物，直径约3cm，表面光滑，顶部中央凹陷或呈溃疡样，上覆盖白苔及血痂，触之易出血；内镜",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "胃十二指肠疾病 胃间质瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "61",
+      "title": "胃十二指肠疾病 案例分析-胃间质瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "反复排血便1周，加重伴少尿半天。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "消化道出血伴急性肾损伤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "62",
+      "title": "案例分析-消化道出血伴急性肾损伤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "左乳胀痛2日，高热2小时。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "乳房疾病 急性乳腺炎",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "63",
+      "title": "乳房疾病 案例分析-急性乳腺炎",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "现病史\n（1）病史摘要\n男性，52岁。主诉“突发上腹部疼痛2小时” 。病人2小时前无明显诱因突然出现上腹部疼痛，呈刀割样持续性剧痛逐渐扩展至全腹，活动时加重。伴有发热，体温 38.4℃；伴恶心无呕吐；不伴腹泻、黑便及便血等。 病人近半年来感觉反复出现腹正中剑突下疼痛，为持续性隐痛，多于餐后发生，可自行缓解；偶有反酸和嗳气症状。无进食哽咽感，无腹胀，无呕吐。未就诊，自行不规则口服奥美拉唑治疗，症状可",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "胃十二指肠疾病 胃十二指肠溃疡伴穿孔",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "64",
+      "title": "胃十二指肠疾病 案例分析-胃十二指肠溃疡伴穿孔",
+      "qa_count": 4
+    }
+  },
+  {
+    "patient_input": "左膝上疼痛1个月，加重1周。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "骨肿瘤",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "65",
+      "title": "案例分析-骨肿瘤",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "右腰部疼痛半年。",
+    "expected_department": "肾内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "肾下垂",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "66",
+      "title": "案例分析-肾下垂",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "活动后心慌、胸闷、呼吸困难2年，加重1个月余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "心脏疾病 房间隔缺损",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "67",
+      "title": "心脏疾病 案例分析-房间隔缺损",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "阴茎勃起不坚1年余，加重3月余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "勃起功能障碍",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "68",
+      "title": "案例分析-勃起功能障碍",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "上腹痛伴胸背部胀痛不适1个月，加重2天。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "胆道疾病 肝内胆管结石",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "69",
+      "title": "胆道疾病 案例分析-肝内胆管结石",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "皮肤巩膜黄染半月余",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "ERAS路径下胰十二指肠切除术一例",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "70",
+      "title": "案例分析-ERAS路径下胰十二指肠切除术一例",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "高处坠落2小时，伴腹痛、右肩痛。",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines",
+      "interpret_lab_result"
+    ],
+    "expected_diagnosis_direction": "腹部损伤 肝破裂",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "71",
+      "title": "腹部损伤 案例分析-肝破裂",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "右乳无痛性肿块1月余。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "乳房疾病 乳腺癌",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "72",
+      "title": "乳房疾病 案例分析-乳腺癌",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "发现阴茎根部处阴囊皮肤溃疡，并逐渐增大3年。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines",
+      "search_drug"
+    ],
+    "expected_diagnosis_direction": "泌尿、男生殖系统肿瘤 阴囊Paget病",
+    "source": "CMB-Clin",
+    "source_meta": {
+      "original_id": "73",
+      "title": "泌尿、男生殖系统肿瘤 案例分析-阴囊Paget病",
+      "qa_count": 3
+    }
+  },
+  {
+    "patient_input": "2岁女孩，生后患颅内出血，经抢救后好转出院。15个月起常有冲头、发呆发作，有时呈大发作，至今不会独站和爬行。脑电图显示有大量1.5〜2.5Hz慢-棘慢复合波。",
+    "expected_department": "儿科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "Lennox-Gastaut综合征",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "专业知识考试",
+      "exam_class": "临床医学",
+      "exam_subject": "儿科学",
+      "original_answer": "C",
+      "original_options": {
+        "A": "West综合征",
+        "B": "Ohtahara综合征",
+        "C": "Lennox-Gastaut综合征",
+        "D": "Dravet综合征",
+        "E": "Doose综合征"
+      }
+    }
+  },
+  {
+    "patient_input": "男性，33岁。不规则发热伴腹痛1个月余，腹泻，黏液便，粪便无脓血。查体：右下腹轻压痛，扪及可疑包块。结肠镜示近结肠肝曲约10cm肠段病变，黏膜呈铺路卵石样改变，可见纵行溃疡。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "克罗恩病",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医学考研",
+      "exam_class": "护理学",
+      "exam_subject": "外科护理学",
+      "original_answer": "D",
+      "original_options": {
+        "A": "肠结核",
+        "B": "溃疡性结肠炎",
+        "C": "肠息肉",
+        "D": "克罗恩病",
+        "E": "淋巴瘤"
+      }
+    }
+  },
+  {
+    "patient_input": "男性，25岁。下腹痛伴脓血便3年。近4日病情加重，并出现高热、衰弱、恶心等症状。查体：精神萎靡，心率114次/分，腹膨隆，全腹压痛，肠鸣音消失。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "溃疡性结肠炎并中毒性巨结肠",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医学考研",
+      "exam_class": "护理学",
+      "exam_subject": "外科护理学",
+      "original_answer": "C",
+      "original_options": {
+        "A": "克罗恩病并肠梗阻",
+        "B": "肠结核并肠梗阻",
+        "C": "溃疡性结肠炎并中毒性巨结肠",
+        "D": "结肠癌并肠梗阻",
+        "E": "肠痉挛"
+      }
+    }
+  },
+  {
+    "patient_input": "男，20岁。低热、气促、腹胀14天。查体：心界向两侧扩大，心尖搏动点位于左侧心界侧，心音低钝，心脏各瓣膜区未闻及杂音。肝肋下3cm，胸部X线片提示：肺叶清晰，心增大。心电图：窦性心动过速，QRS波群低电压，广泛性T波低平。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "急性心包炎",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医师考试",
+      "exam_class": "执业助理医师",
+      "exam_subject": "临床执业助理医师",
+      "original_answer": "E",
+      "original_options": {
+        "A": "缩窄性心包炎",
+        "B": "肥厚型心肌病",
+        "C": "急性心肌梗死",
+        "D": "风湿性心脏病",
+        "E": "急性心包炎"
+      }
+    }
+  },
+  {
+    "patient_input": "男，20岁。低热、气促、腹胀14天。查体：心界向两侧扩大，心尖搏动点位于左侧心界侧，心音低钝，心脏各瓣膜区未闻及杂音。肝肋下3cm，胸部X线片提示：肺叶清晰，心增大。心电图：窦性心动过速，QRS波群低电压，广泛性T波低平。",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "急性心包炎",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医师考试",
+      "exam_class": "执业医师",
+      "exam_subject": "临床执业医师",
+      "original_answer": "E",
+      "original_options": {
+        "A": "缩窄性心包炎",
+        "B": "肥厚型心肌病",
+        "C": "急性心肌梗死",
+        "D": "风湿性心脏病",
+        "E": "急性心包炎"
+      }
+    }
+  },
+  {
+    "patient_input": "女性，62岁，剑突下持续性胀痛10余小时，恶心呕吐，伴有寒战、发热，过去有类似发作并伴黄疸史，曾诊断为传染性肝炎。体检：神志淡漠，体温39.8℃，血压10/7kPa(75/55mmHg)，脉搏120次/分，剑突下压痛，肝区叩击痛。白细胞计数28×109/L，中性0.92，血清淀粉酶160苏氏单位。诊断首先应考虑",
+    "expected_department": "消化内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "急性梗阻性化脓性胆管炎",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医师考试",
+      "exam_class": "高级职称",
+      "exam_subject": "消化内科高级职称",
+      "original_answer": "D",
+      "original_options": {
+        "A": "急性胰腺炎",
+        "B": "胆道蛔虫病",
+        "C": "急性胆囊炎，胆石症",
+        "D": "急性梗阻性化脓性胆管炎",
+        "E": "溃疡病穿孔"
+      }
+    }
+  },
+  {
+    "patient_input": "患者女，42岁。左乳房外上象限4cm*3cm肿块，同侧腋窝淋巴结多个肿大融合，病理检查结果提示为左乳浸润性导管癌，13枚腋窝淋巴结中4枚阳性示阳性，ER++，PR-，Her-2/neu-。该患者的临床分期考虑为",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "ⅢA期",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "医技考试",
+      "exam_class": "医技士",
+      "exam_subject": "肿瘤学技术（士）",
+      "original_answer": "D",
+      "original_options": {
+        "A": "Ⅰ期",
+        "B": "ⅡA期",
+        "C": "ⅡB期",
+        "D": "ⅢA期",
+        "E": "ⅢB期"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女性，45岁，因肝硬化伴腹水入院治疗。近2天突然呕血约1000ml，现出现嗜睡、精神错乱、幻觉，伴扑翼样震颤，脑电图异常。此时患者可能处于肝性脑病的哪一期",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "昏睡期",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "主管护师",
+      "exam_subject": "主管护师资格考试",
+      "original_answer": "C",
+      "original_options": {
+        "A": "前驱期",
+        "B": "昏迷前期",
+        "C": "昏睡期",
+        "D": "浅昏迷期",
+        "E": "深昏迷期"
+      }
+    }
+  },
+  {
+    "patient_input": "某孕妇，34岁，第1胎；既往体健，孕前血压为115/86mmHg。宫内孕31周时出现经休息后不消失的双下肢水肿，孕34周时出现头痛，查体：血压160/115mmHg，水肿（+)，尿蛋白定量3.5g/24h，",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "重度子痫前期",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护士执业资格",
+      "exam_subject": "护士执业资格考试",
+      "original_answer": "E",
+      "original_options": {
+        "A": "原发性高血压合并妊娠",
+        "B": "妊娠合并慢性肾炎",
+        "C": "妊娠期高血压",
+        "D": "轻度子痫前期",
+        "E": "重度子痫前期"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女性，54岁，因“肺结核”入院，住院期间曾发生大咯血。该患者在咯血时适宜采取的体位是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "患侧卧位",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护士执业资格",
+      "exam_subject": "护士执业资格考试",
+      "original_answer": "E",
+      "original_options": {
+        "A": "头低足高位，头偏向一侧",
+        "B": "去枕平卧位",
+        "C": "平卧位，头偏向一侧",
+        "D": "端坐位",
+        "E": "患侧卧位"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女性，78岁，因大叶性肺炎高热卧床。护士为其进行床上擦浴时，下列顺序正确的是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "脸、颈部一上肢一胸腹一颈后一背部一臀部一下肢一足部一会阴",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护士执业资格",
+      "exam_subject": "护士执业资格考试",
+      "original_answer": "A",
+      "original_options": {
+        "A": "脸、颈部一上肢一胸腹一颈后一背部一臀部一下肢一足部一会阴",
+        "B": "脸、颈部一上肢一胸腹一颈后一背部一臀部一会阴一下肢一足部",
+        "C": "脸、颈部一胸腹一上肢一颈后一背部一臀部一会阴一下肢一足部",
+        "D": "脸、颈部一上肢一胸腹一下肢一足部一颈后一背部一臀部一会阴",
+        "E": "脸、颈部一颈后一背部一臀部一胸腹一上肢一下肢一足部一会阴"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，男性，76岁，慢性肺源性心脏病10年，近日受凉后咳黏脓痰，查体：体温37.6℃，端坐位，口唇发绀，双下肢水肿，两肺散在干、湿啰音，叩诊心界不大，心率92次/分，律齐, 肝肋下2cm。下列措施中最关键的是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "静脉点滴广谱抗生素",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护士执业资格",
+      "exam_subject": "护士执业资格考试",
+      "original_answer": "B",
+      "original_options": {
+        "A": "持续低流量吸氧",
+        "B": "静脉点滴广谱抗生素",
+        "C": "使用快速洋地黄制剂",
+        "D": "使用利尿药控制心力衰竭",
+        "E": "静脉补液以稀释痰液"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女，32岁，发热3d，咽喉疼痛，经检查诊断为急性扁桃体炎，静脉滴注青霉素后发生过敏反应，错误的处理是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "减慢输液速度，继续观察",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护士执业资格",
+      "exam_subject": "护士执业资格考试",
+      "original_answer": "D",
+      "original_options": {
+        "A": "立即停药",
+        "B": "皮下注射0.1%盐酸肾上腺素",
+        "C": "立即吸氧",
+        "D": "减慢输液速度，继续观察",
+        "E": "静脉注射5～10mg地塞米松"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女，75岁，主因“急性广泛前壁心肌梗死”入院，入院后给予扩张冠状动脉、抗凝等治疗后患者胸痛减轻。入院后8小时患者突然出现严重呼吸困难，伴大汗淋漓、面色苍白、口唇发绀，并咳大量粉红色泡沫样痰，此时应采取的治疗措施中不妥的是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "给予患者持续低流量吸氧",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "护理考试",
+      "exam_class": "护师执业资格",
+      "exam_subject": "护师资格考试",
+      "original_answer": "B",
+      "original_options": {
+        "A": "指导患者取坐位或半卧位，两腿下垂",
+        "B": "给予患者持续低流量吸氧",
+        "C": "遵医嘱予毛花苷C缓慢静脉注射",
+        "D": "皮下注射或静推吗啡",
+        "E": "静脉推注呋塞米"
+      }
+    }
+  },
+  {
+    "patient_input": "某男性患者，65岁，双侧颈部、双侧腋窝淋巴结肿大1年，下眼眶出现包块半个月，",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "只能用5%葡萄糖注射液做溶媒",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "药师考试",
+      "exam_class": "主管药师",
+      "exam_subject": "主管药师资格考试",
+      "original_answer": "C",
+      "original_options": {
+        "A": "属于抗肿瘤单克隆抗体",
+        "B": "无骨髓抑制，多数患者耐受良好",
+        "C": "只能用5%葡萄糖注射液做溶媒",
+        "D": "初次滴注，起始滴注速度50mg/h",
+        "E": "不推荐本品在治疗期间减量使用"
+      }
+    }
+  },
+  {
+    "patient_input": "患者，女性，52岁。有风湿性心脏病，二尖 瓣狭窄，经常自觉气短，来医院诊为慢性心功能不全，并给予地高辛每日维持量治疗，该患者不久发生强心苷中毒，引起快速性心律失常，下述治疗措施不正确的是",
+    "expected_department": "内科",
+    "expected_tools": [
+      "search_guidelines"
+    ],
+    "expected_diagnosis_direction": "用呋塞米",
+    "source": "CMB-Exam",
+    "source_meta": {
+      "exam_type": "药师考试",
+      "exam_class": "初级药士",
+      "exam_subject": "药士初级考试",
+      "original_answer": "C",
+      "original_options": {
+        "A": "停药",
+        "B": "用氯化钾",
+        "C": "用呋塞米",
+        "D": "用苯妥英钠",
+        "E": "用利多卡因"
+      }
+    }
+  }
+]
