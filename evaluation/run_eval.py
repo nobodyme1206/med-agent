@@ -104,6 +104,8 @@ def parse_args():
     parser.add_argument("--max_tool_calls", type=int, default=0, help="每个 case 的总工具调用上限（0=默认）")
     parser.add_argument("--max_calls_per_tool", type=int, default=0, help="每个工具单独调用上限（0=默认）")
     parser.add_argument("--max_cases", type=int, default=0, help="最多评测几条（0=全部）")
+    parser.add_argument("--eval_source", type=str, default="",
+                        help="评测数据来源标注，如 'synth' / 'CMB-Exam' / 'CMB-Clin' / 'hard_case'")
     return parser.parse_args()
 
 
@@ -112,9 +114,22 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 检测数据来源
+    eval_source = args.eval_source
+    if not eval_source:
+        # 自动推断
+        eval_data_name = Path(args.eval_data).stem
+        if "cmb" in eval_data_name.lower():
+            eval_source = "CMB"
+        elif "hard" in eval_data_name.lower():
+            eval_source = "hard_case"
+        else:
+            eval_source = "synth"
+
     report = {
         "timestamp": time.time(),
         "eval_data": args.eval_data,
+        "eval_source": eval_source,
         "runtime": {
             "use_tools": not args.disable_tools,
             "use_rag": not args.disable_rag,
@@ -129,7 +144,16 @@ def main():
     # 加载评测数据
     with open(args.eval_data, "r", encoding="utf-8") as f:
         eval_cases = json.load(f)
-    logger.info(f"评测数据加载: {len(eval_cases)} 条")
+    logger.info(f"评测数据加载: {len(eval_cases)} 条 (来源: {eval_source})")
+
+    # 统计各数据来源分布
+    source_dist = {}
+    for c in eval_cases:
+        src = c.get("source", eval_source)
+        source_dist[src] = source_dist.get(src, 0) + 1
+    if source_dist:
+        report["data_source_distribution"] = source_dist
+        logger.info(f"数据来源分布: {source_dist}")
 
     # 限制评测数量
     if args.max_cases > 0:
@@ -388,8 +412,10 @@ def main():
 
     # 打印摘要
     print("\n" + "=" * 60)
-    print("MedAgent 评测报告摘要")
+    print(f"MedAgent 评测报告摘要 [数据来源: {report.get('eval_source', 'unknown')}]")
     print("=" * 60)
+    if "data_source_distribution" in report:
+        print(f"  数据来源分布: {report['data_source_distribution']}")
     if "llm_judge" in report:
         lj = report["llm_judge"]
         print(f"  ★ 诊断准确率 (Judge≥4):  {lj.get('diagnostic_accuracy', 0):.1%} "

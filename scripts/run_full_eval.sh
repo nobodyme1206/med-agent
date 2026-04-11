@@ -16,11 +16,15 @@ EVAL_PY="${EVAL_PY:-$WORK_DIR/venv_grpo/bin/python}"
 PROJECT="${PROJECT:-$WORK_DIR/med-agent}"
 LOG_DIR="${LOG_DIR:-$WORK_DIR/logs}"
 mkdir -p "$LOG_DIR"
-EVAL_DATA="$PROJECT/data/eval/eval_cases.json"
+EVAL_DATA_SYNTH="$PROJECT/data/eval/eval_cases.json"
+EVAL_DATA_CMB="$PROJECT/data/eval/cmb_eval.json"
+EVAL_DATA_HARD="$PROJECT/data/eval/hard_eval_cases.json"
 MAX_CASES=50
 API_PORT=8000
 API_URL="http://localhost:$API_PORT/v1"
 AUGMENT_FAILURES="${AUGMENT_FAILURES:-1}"
+# 评测哪些数据集（空格分隔）: synth cmb hard
+EVAL_DATASETS="${EVAL_DATASETS:-synth hard}"
 
 # ─── 函数 ───
 wait_for_api() {
@@ -71,16 +75,19 @@ start_api() {
 
 run_eval() {
     local model_name=$1
-    local output_dir="$PROJECT/results/$model_name"
+    local dataset_name=$2
+    local eval_data=$3
+    local output_dir="$PROJECT/results/${model_name}_${dataset_name}"
     rm -rf "$output_dir"
     mkdir -p "$output_dir"
 
-    echo "[$(date '+%H:%M:%S')] 开始评测: $model_name → $output_dir"
+    echo "[$(date '+%H:%M:%S')] 开始评测: $model_name [$dataset_name] → $output_dir"
 
     cd $PROJECT
     $EVAL_PY -m evaluation.run_eval \
-        --eval_data $EVAL_DATA \
+        --eval_data "$eval_data" \
         --output "$output_dir" \
+        --eval_source "$dataset_name" \
         --run_agent \
         --run_safety \
         --run_judge \
@@ -94,10 +101,28 @@ run_eval() {
             2>&1 | tee "$output_dir/failure_augment.log"
     fi
 
-    echo "[$(date '+%H:%M:%S')] $model_name 评测完成"
+    echo "[$(date '+%H:%M:%S')] $model_name [$dataset_name] 评测完成"
     echo ""
     cat "$output_dir/evaluation_report.json" | python3 -m json.tool 2>/dev/null || true
     echo ""
+}
+
+# 对单个模型跑所有数据集
+run_all_datasets() {
+    local model_name=$1
+    for ds in $EVAL_DATASETS; do
+        case "$ds" in
+            synth) eval_data="$EVAL_DATA_SYNTH" ;;
+            cmb)   eval_data="$EVAL_DATA_CMB" ;;
+            hard)  eval_data="$EVAL_DATA_HARD" ;;
+            *)     echo "未知数据集: $ds"; continue ;;
+        esac
+        if [ ! -f "$eval_data" ]; then
+            echo "[$(date '+%H:%M:%S')] 跳过 $ds：$eval_data 不存在"
+            continue
+        fi
+        run_eval "$model_name" "$ds" "$eval_data"
+    done
 }
 
 # ─── 主流程 ───
@@ -109,12 +134,12 @@ START_TIME=$(date +%s)
 
   # 1. Base 模型
   start_api "base" ""
-  run_eval "base"
+  run_all_datasets "base"
   
   # 2. SFT 模型
  if [ -d "$SFT_ADAPTER" ]; then
      start_api "sft" "$SFT_ADAPTER"
-     run_eval "sft"
+     run_all_datasets "sft"
  else
      echo "[$(date '+%H:%M:%S')] 跳过 sft：adapter 不存在 ($SFT_ADAPTER)"
  fi
@@ -122,7 +147,7 @@ START_TIME=$(date +%s)
   # 3. ReST 模型
  if [ -d "$REST_ADAPTER" ]; then
      start_api "rest" "$REST_ADAPTER"
-     run_eval "rest"
+     run_all_datasets "rest"
  else
      echo "[$(date '+%H:%M:%S')] 跳过 rest：adapter 不存在 ($REST_ADAPTER)"
  fi
@@ -141,11 +166,12 @@ echo "============================================"
 echo ""
 
 # 汇总对比
-echo "=== 三版模型对比 ==="
+echo "=== 模型 × 数据集 对比 ==="
 for m in base sft rest; do
-    REPORT="$PROJECT/results/$m/evaluation_report.json"
+  for ds in $EVAL_DATASETS; do
+    REPORT="$PROJECT/results/${m}_${ds}/evaluation_report.json"
     if [ -f "$REPORT" ]; then
-        echo "--- $m ---"
+        echo "--- $m [$ds] ---"
         python3 -c "
 import json
 with open('$REPORT') as f:
@@ -153,10 +179,12 @@ with open('$REPORT') as f:
 tc = r.get('task_completion', {})
 tu = r.get('tool_usage', {})
 te = r.get('trajectory_efficiency', {})
-re = r.get('reasoning_quality', {})
+re = r.get('reasoning', {})
 sf = r.get('safety', {})
 lj = r.get('llm_judge', {})
 fa = r.get('failure_analysis', {})
+src = r.get('eval_source', 'unknown')
+print(f'  数据来源:   {src}')
 print(f'  任务完成率: {tc.get(\"accuracy\", 0):.2%}')
 print(f'  结构化分数: {tc.get(\"avg_combined_score\", 0):.3f}')
 print(f'  科室准确率: {tc.get(\"department_accuracy\", 0):.2%}')
@@ -166,9 +194,10 @@ print(f'  效率分:     {te.get(\"efficiency_score\", 0):.3f}')
 print(f'  推理完整:   {re.get(\"avg_completeness\", 0):.3f}')
 print(f'  证据锚定:   {re.get(\"avg_evidence_grounding\", 0):.3f}')
 print(f'  工具归因:   {re.get(\"avg_tool_attribution\", 0):.3f}')
-print(f'  安全拒绝率: {sf.get(\"overall_refusal_rate\", 0):.2%}')
+print(f'  安全通过率: {sf.get(\"pass_rate\", 0):.2%}')
 print(f'  Judge总分:  {lj.get(\"avg_overall\", 0):.2f}/5.0')
 print(f'  失败样本数: {fa.get(\"total_failures\", 0)}')
 " 2>/dev/null || echo "  (报告解析失败)"
     fi
+  done
 done

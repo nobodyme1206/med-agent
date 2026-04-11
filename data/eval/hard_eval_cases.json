@@ -1,0 +1,182 @@
+[
+  {
+    "patient_input": "我63岁，有糖尿病十几年了，最近两周走路小腿疼，走不了200米就要停下来歇，歇一会又能走了。另外我血压也一直高，吃着降压药。最近还觉得胸闷，爬楼梯气短",
+    "expected_department": "心血管内科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result", "search_drug"],
+    "expected_diagnosis_direction": "糖尿病合并外周动脉疾病（间歇性跛行）、高血压病，需排除冠心病",
+    "difficulty": "hard",
+    "challenge_type": "多合并症",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "医生，我最近一个月反复发烧，37.5到38度之间，没什么规律。有时候关节痛，有时候又不痛。脸上有时候会红，晒太阳后更明显。查了几次血常规白细胞偏低。我今年28岁女性",
+    "expected_department": "风湿免疫科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result"],
+    "expected_diagnosis_direction": "系统性红斑狼疮可能，需查ANA、抗dsDNA抗体、补体",
+    "difficulty": "hard",
+    "challenge_type": "症状模糊_多系统受累",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我爸72岁，今天中午吃饭时突然说话含糊不清，筷子也拿不稳。但过了大概二十分钟就好了，现在看着完全正常。他有房颤病史。需要去医院吗",
+    "expected_department": "神经内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "短暂性脑缺血发作（TIA），需紧急就医，高卒中风险",
+    "difficulty": "hard",
+    "challenge_type": "症状已消退_易误判为无事",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "35岁，最近三个月瘦了快10斤，没有刻意减肥。有时候心慌手抖，怕热爱出汗，脾气也变差了。月经也不规律了",
+    "expected_department": "内分泌科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result"],
+    "expected_diagnosis_direction": "甲状腺功能亢进可能，需查甲功三项（TSH、FT3、FT4）",
+    "difficulty": "medium",
+    "challenge_type": "多系统症状_指向单一病因",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "孩子5岁，昨晚开始发烧39度，今天嗓子疼不肯吃东西，看了下嗓子红红的有白点。我给吃了头孢和布洛芬。想问需要输液吗？还是再观察",
+    "expected_department": "儿科",
+    "expected_tools": ["search_guidelines", "search_drug"],
+    "expected_diagnosis_direction": "急性化脓性扁桃体炎可能，口服抗生素即可，不必要输液",
+    "difficulty": "medium",
+    "challenge_type": "家长焦虑_过度医疗倾向",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "58岁男性，半夜胸口痛醒了，像石头压着一样，出了一身冷汗，含了硝酸甘油也没怎么缓解，大概痛了四十分钟了",
+    "expected_department": "心血管内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "急性心肌梗死高度可疑，需立即拨打120急救",
+    "difficulty": "hard",
+    "challenge_type": "急危重症识别",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我45岁，体检发现肝功能转氨酶高了，ALT 86 AST 72。平时偶尔应酬喝酒，不多。体重超标，BMI 28。没什么不舒服的感觉",
+    "expected_department": "消化内科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result"],
+    "expected_diagnosis_direction": "非酒精性脂肪肝可能性大，需排除病毒性肝炎，建议查乙肝五项、丙肝抗体、腹部超声",
+    "difficulty": "medium",
+    "challenge_type": "无症状异常指标",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "老人家80岁了，这两天不怎么吃东西精神也差，问她哪里不舒服她说不清楚。量了体温37.2度，不算发烧吧。以前有高血压冠心病糖尿病",
+    "expected_department": "内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "老年患者非特异性表现，需警惕感染、电解质紊乱、心脑血管事件等，建议尽早就医全面检查",
+    "difficulty": "hard",
+    "challenge_type": "老年非特异性表现_信息极少",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我正在吃华法林抗凝，因为之前做了心脏瓣膜置换。最近牙疼想拔牙，牙科说要我问一下能不能停药。另外我上周查的INR是2.8",
+    "expected_department": "心血管内科",
+    "expected_tools": ["search_guidelines", "search_drug", "check_drug_interaction"],
+    "expected_diagnosis_direction": "机械瓣置换术后抗凝中，拔牙需评估出血风险，不可自行停药，需心内科和口腔科联合评估",
+    "difficulty": "hard",
+    "challenge_type": "跨科协调_药物管理",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "26岁女，备孕中。最近偏头痛发作频繁，一个月三四次。以前吃布洛芬管用，但听说怀孕不能吃。有什么安全的止痛方法吗",
+    "expected_department": "神经内科",
+    "expected_tools": ["search_guidelines", "search_drug"],
+    "expected_diagnosis_direction": "偏头痛，备孕期用药需谨慎，避免NSAIDs和曲坦类，可考虑对乙酰氨基酚",
+    "difficulty": "medium",
+    "challenge_type": "特殊人群用药安全",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "最近总觉得心跳快，有时候突然心慌一下，但也不知道什么时候来。做了心电图说正常。这是怎么回事呢？我29岁，工作压力大经常加班熬夜",
+    "expected_department": "心血管内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "功能性心悸可能，需排除阵发性心律失常（建议动态心电图），关注焦虑状态和生活方式",
+    "difficulty": "medium",
+    "challenge_type": "常规检查正常_功能性症状",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我妈60岁，去年查出2型糖尿病，吃了二甲双胍和格列美脲。前几天社区体检空腹血糖5.8，她说既然正常了要不把药停了吧。糖化血红蛋白上次查是6.8%",
+    "expected_department": "内分泌科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result", "search_drug"],
+    "expected_diagnosis_direction": "2型糖尿病药物控制中，血糖达标不代表治愈，不可自行停药，需长期管理",
+    "difficulty": "medium",
+    "challenge_type": "患者依从性_错误停药意图",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "孕32周，今天突然觉得头痛厉害，测血压145/95，以前产检血压都正常。脚肿了一周了但以为是孕晚期正常的",
+    "expected_department": "妇产科",
+    "expected_tools": ["search_guidelines", "interpret_lab_result"],
+    "expected_diagnosis_direction": "子痫前期可能，需紧急就医检查尿蛋白和肝肾功能",
+    "difficulty": "hard",
+    "challenge_type": "妊娠期急症",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "50岁，大便带血有两个月了，以为是痔疮一直没管。最近发现大便变细了，有时候便秘有时候拉肚子，体重也掉了几斤",
+    "expected_department": "消化内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "排便习惯改变+便血+消瘦，需高度警惕结直肠肿瘤，尽快肠镜检查",
+    "difficulty": "hard",
+    "challenge_type": "恶性肿瘤预警_患者自我误判",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我同时在吃辛伐他汀降血脂和氨氯地平降压。最近医生又给开了克拉霉素治胃的幽门螺旋杆菌。吃了两天觉得肌肉酸痛，是不是药物有冲突",
+    "expected_department": "内科",
+    "expected_tools": ["search_drug", "check_drug_interaction"],
+    "expected_diagnosis_direction": "克拉霉素与辛伐他汀存在严重药物相互作用（CYP3A4抑制），可致横纹肌溶解，需立即停用辛伐他汀或更换抗生素",
+    "difficulty": "hard",
+    "challenge_type": "药物相互作用_严重不良反应",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "反复口腔溃疡快一年了，好了又长。有时候下面也会长溃疡。偶尔眼睛会红。30岁男性",
+    "expected_department": "风湿免疫科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "白塞病可能（口腔溃疡+生殖器溃疡+眼炎三联征），需风湿免疫科评估",
+    "difficulty": "hard",
+    "challenge_type": "罕见病_多系统线索",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我就是想问一下，感冒了能吃阿莫西林吗",
+    "expected_department": "呼吸内科",
+    "expected_tools": ["search_guidelines", "search_drug"],
+    "expected_diagnosis_direction": "普通感冒多为病毒感染，抗生素无效，不推荐使用阿莫西林，对症治疗即可",
+    "difficulty": "easy",
+    "challenge_type": "常见误区_抗生素滥用",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "之前体检发现甲状腺结节，说是4A类，大小1.2cm。医生建议穿刺但我害怕。不处理行吗？我没有任何症状",
+    "expected_department": "内分泌科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "TI-RADS 4A类结节恶性风险约5-15%，>1cm建议细针穿刺活检明确性质",
+    "difficulty": "medium",
+    "challenge_type": "患者恐惧_需要平衡告知",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "3岁小孩，昨天开始发烧38.5度，今天身上出了好多红疹子，先是从脸上开始的然后到身上。没有打过水痘疫苗",
+    "expected_department": "儿科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "水痘可能性大（发热+向心性分布皮疹+未接种疫苗），注意隔离，避免使用阿司匹林",
+    "difficulty": "medium",
+    "challenge_type": "传染病识别_用药禁忌",
+    "source": "hard_case_manual"
+  },
+  {
+    "patient_input": "我今年40岁，家里爷爷和爸爸都是胃癌去世的。我想做个全面检查但不知道该查什么。目前没有什么症状",
+    "expected_department": "消化内科",
+    "expected_tools": ["search_guidelines"],
+    "expected_diagnosis_direction": "胃癌家族史，属于高风险人群，建议胃镜筛查+幽门螺杆菌检测，40岁起定期复查",
+    "difficulty": "medium",
+    "challenge_type": "家族史风险评估_预防医学",
+    "source": "hard_case_manual"
+  }
+]
