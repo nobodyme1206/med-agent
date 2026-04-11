@@ -20,10 +20,11 @@
 
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from graph.state import TOKEN_BUDGET
 from tools.registry import registry
-from utils.llm_client import chat, chat_with_messages
+from utils.llm_client import chat, chat_with_messages, get_token_usage
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,82 @@ def _check_tool_success(tool_result_str: str) -> bool:
     except (json.JSONDecodeError, TypeError):
         pass
     return True
+
+
+def _normalize_args(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _normalize_args(value[k]) for k in sorted(value)}
+    if isinstance(value, list):
+        return [_normalize_args(v) for v in value]
+    return value
+
+
+def _make_call_signature(name: str, args: Dict) -> str:
+    normalized = _normalize_args(args or {})
+    return f"{name}:{json.dumps(normalized, ensure_ascii=False, sort_keys=True)}"
+
+
+def _summarize_tool_result(tool_result_str: str, max_length: int = 600) -> str:
+    try:
+        parsed = json.loads(tool_result_str)
+    except (json.JSONDecodeError, TypeError):
+        return tool_result_str[:max_length]
+
+    if isinstance(parsed, dict):
+        compact = {}
+        for key in ("summary", "result", "interpretation", "recommendation", "risk_level", "found"):
+            if key in parsed:
+                compact[key] = parsed[key]
+        if "chunks" in parsed and isinstance(parsed["chunks"], list):
+            compact["chunks"] = parsed["chunks"][:2]
+        if "drug" in parsed:
+            compact["drug"] = parsed["drug"]
+        if not compact:
+            compact = parsed
+        return json.dumps(compact, ensure_ascii=False)[:max_length]
+
+    if isinstance(parsed, list):
+        return json.dumps(parsed[:3], ensure_ascii=False)[:max_length]
+
+    return str(parsed)[:max_length]
+
+
+def _check_runtime_budget() -> Optional[str]:
+    usage = get_token_usage()
+    if usage > TOKEN_BUDGET:
+        return f"token_budget_exceeded:{usage}>{TOKEN_BUDGET}"
+    return None
+
+
+def _tool_policy(
+    tool_name: str,
+    args: Dict,
+    allowed_tool_names: List[str],
+    executed_calls: List[Dict],
+    tools_enabled: bool,
+    rag_enabled: bool,
+    max_total_tool_calls: Optional[int],
+    max_calls_per_tool: Optional[int],
+) -> Tuple[bool, str, str]:
+    signature = _make_call_signature(tool_name, args)
+
+    if not tools_enabled:
+        return False, "工具已禁用", signature
+    if tool_name not in allowed_tool_names:
+        return False, "工具不在规划列表内", signature
+    if not rag_enabled and tool_name == "search_guidelines":
+        return False, "RAG 已禁用", signature
+    if max_total_tool_calls is not None and len(executed_calls) >= max_total_tool_calls:
+        return False, "达到总工具调用上限", signature
+
+    same_tool_count = sum(1 for tc in executed_calls if tc.get("tool_name") == tool_name)
+    if max_calls_per_tool is not None and same_tool_count >= max_calls_per_tool:
+        return False, f"工具 {tool_name} 达到单工具调用上限", signature
+
+    if any(tc.get("call_signature") == signature for tc in executed_calls):
+        return False, f"重复调用 {tool_name} 被抑制", signature
+
+    return True, "", signature
 
 
 def _parse_text_output(output: str) -> Dict:
@@ -122,7 +199,13 @@ def _run_fc_mode(
     system_prompt: str,
     user_prompt: str,
     tool_schemas: List[Dict],
+    allowed_tool_names: List[str],
+    tools_enabled: bool = True,
+    rag_enabled: bool = True,
+    agent_name: str = "agent",
     max_rounds: int = 3,
+    max_total_tool_calls: Optional[int] = None,
+    max_calls_per_tool: Optional[int] = None,
     temperature: float = 0.3,
     max_tokens: int = 1024,
 ) -> Optional[Dict]:
@@ -138,8 +221,14 @@ def _run_fc_mode(
 
     new_tool_calls = []
     retrieved_knowledge = []
+    stop_reason = ""
 
     for round_idx in range(max_rounds):
+        budget_reason = _check_runtime_budget()
+        if budget_reason:
+            stop_reason = budget_reason
+            break
+
         # 第一轮传工具 schema 让模型决定是否调用；后续轮次已有工具结果，不再传工具
         use_tools = tool_schemas if (round_idx == 0 and tool_schemas) else None
         try:
@@ -165,9 +254,9 @@ def _run_fc_mode(
                 "response": content,
                 "tool_calls": new_tool_calls,
                 "knowledge": retrieved_knowledge,
+                "stop_reason": stop_reason,
             }
 
-        # 执行所有工具调用，收集结果
         tool_results_text_parts = []
 
         for tc in api_tool_calls:
@@ -177,6 +266,21 @@ def _run_fc_mode(
                 fargs = json.loads(func.get("arguments", "{}"))
             except json.JSONDecodeError:
                 fargs = {}
+
+            allow, deny_reason, signature = _tool_policy(
+                tool_name=fname,
+                args=fargs,
+                allowed_tool_names=allowed_tool_names,
+                executed_calls=new_tool_calls,
+                tools_enabled=tools_enabled,
+                rag_enabled=rag_enabled,
+                max_total_tool_calls=max_total_tool_calls,
+                max_calls_per_tool=max_calls_per_tool,
+            )
+            if not allow:
+                logger.info(f"ToolAgent FC: 跳过 {fname}({fargs}) - {deny_reason}")
+                tool_results_text_parts.append(f"【工具策略】已跳过 {fname}：{deny_reason}")
+                continue
 
             logger.info(f"ToolAgent FC: 工具调用 [{round_idx+1}] {fname}({fargs})")
 
@@ -188,9 +292,12 @@ def _run_fc_mode(
                 "input_args": fargs,
                 "output": tool_result,
                 "success": _success,
+                "agent_name": agent_name,
+                "round_id": round_idx + 1,
+                "call_signature": signature,
+                "skipped_reason": "",
             })
 
-            # RAG 知识保存
             if fname == "search_guidelines":
                 try:
                     rag_result = json.loads(tool_result)
@@ -200,27 +307,38 @@ def _run_fc_mode(
                     pass
 
             tool_results_text_parts.append(
-                f"【工具 {fname} 返回】\n{tool_result}"
+                f"【工具 {fname} 返回】\n{_summarize_tool_result(tool_result)}"
             )
 
-        # 将 assistant 回复 + 工具结果拼成 user/assistant 交替格式
-        # （兼容 LLaMA-Factory vLLM 只支持 u/a/u/a 的限制）
+        if not tool_results_text_parts:
+            stop_reason = stop_reason or "all_tool_calls_blocked"
+            break
+
         msgs.append({"role": "assistant", "content": content or f"（调用了工具：{', '.join(tc.get('function',{}).get('name','') for tc in api_tool_calls)}）"})
         msgs.append({"role": "user", "content": "\n\n".join(tool_results_text_parts) + "\n\n请根据工具返回的结果，继续分析并给出回复。"})
 
-    # 超过最大轮数，最终调用（不带工具）
+    if stop_reason.startswith("token_budget_exceeded"):
+        return {
+            "response": "",
+            "tool_calls": new_tool_calls,
+            "knowledge": retrieved_knowledge,
+            "stop_reason": stop_reason,
+        }
+
     try:
         final = chat_with_messages(msgs, temperature=temperature, max_tokens=max_tokens)
         return {
             "response": final.get("content", "") if final else "",
             "tool_calls": new_tool_calls,
             "knowledge": retrieved_knowledge,
+            "stop_reason": stop_reason or ("max_rounds_reached" if max_rounds > 0 else ""),
         }
     except Exception:
         return {
             "response": "",
             "tool_calls": new_tool_calls,
             "knowledge": retrieved_knowledge,
+            "stop_reason": stop_reason,
         }
 
 
@@ -232,37 +350,60 @@ def _run_text_mode(
     allowed_tool_names: List[str],
     tools_enabled: bool = True,
     rag_enabled: bool = True,
+    agent_name: str = "agent",
     max_rounds: int = 3,
+    max_total_tool_calls: Optional[int] = None,
+    max_calls_per_tool: Optional[int] = None,
     temperature: float = 0.3,
     max_tokens: int = 1024,
 ) -> Dict:
     """文本模式：用 <tool_call> 标签解析工具调用"""
     response = chat(user_prompt, system=system_prompt, temperature=temperature, max_tokens=max_tokens)
     if not response:
-        return {"response": "", "tool_calls": [], "knowledge": []}
+        return {"response": "", "tool_calls": [], "knowledge": [], "stop_reason": ""}
 
     parsed = _parse_text_output(response)
     all_thoughts = [parsed["thought"]] if parsed["thought"] else []
     new_tool_calls = []
     retrieved_knowledge = []
+    stop_reason = ""
 
     for round_idx in range(max_rounds):
+        budget_reason = _check_runtime_budget()
+        if budget_reason:
+            stop_reason = budget_reason
+            break
+
         if not parsed["tool_call"]:
             break
 
         tool_call = parsed["tool_call"]
         tname = tool_call.get("name", "")
 
-        if not tools_enabled:
-            logger.info(f"ToolAgent text: 工具已禁用，跳过 {tname}")
-            break
-        if not rag_enabled and tname == "search_guidelines":
-            logger.info("ToolAgent text: RAG 已禁用，跳过 search_guidelines")
-            parsed = {"thought": parsed["thought"], "tool_call": None, "response": ""}
+        allow, deny_reason, signature = _tool_policy(
+            tool_name=tname,
+            args=tool_call.get("args", {}),
+            allowed_tool_names=allowed_tool_names,
+            executed_calls=new_tool_calls,
+            tools_enabled=tools_enabled,
+            rag_enabled=rag_enabled,
+            max_total_tool_calls=max_total_tool_calls,
+            max_calls_per_tool=max_calls_per_tool,
+        )
+        if not allow:
+            logger.info(f"ToolAgent text: 跳过 {tname} - {deny_reason}")
+            followup = (
+                f"{user_prompt}\n\n"
+                f"【你之前的思考】{parsed['thought']}\n"
+                f"【工具策略】{deny_reason}\n\n"
+                f"请在当前限制下继续分析并给出回复。"
+            )
+            response = chat(followup, system=system_prompt, temperature=temperature, max_tokens=max_tokens)
+            if not response:
+                stop_reason = stop_reason or "tool_call_blocked"
+                break
+            parsed = _parse_text_output(response)
             continue
-        if tname not in allowed_tool_names:
-            logger.warning(f"ToolAgent text: 工具 {tname} 不在允许列表中，跳过")
-            break
 
         logger.info(f"ToolAgent text: 工具调用 [{round_idx+1}] {tname}")
 
@@ -274,6 +415,10 @@ def _run_text_mode(
             "input_args": tool_call.get("args", {}),
             "output": tool_result,
             "success": _success,
+            "agent_name": agent_name,
+            "round_id": round_idx + 1,
+            "call_signature": signature,
+            "skipped_reason": "",
         })
 
         if tname == "search_guidelines":
@@ -288,7 +433,7 @@ def _run_text_mode(
             f"{user_prompt}\n\n"
             f"【你之前的思考】{parsed['thought']}\n"
             f"【工具调用】{json.dumps(tool_call, ensure_ascii=False)}\n"
-            f"【工具返回】{tool_result}\n\n"
+            f"【工具返回】{_summarize_tool_result(tool_result)}\n\n"
             f"请根据工具返回的结果，继续分析并给出回复。"
         )
         response = chat(followup, system=system_prompt, temperature=temperature, max_tokens=max_tokens)
@@ -303,6 +448,7 @@ def _run_text_mode(
         "response": parsed["response"],
         "tool_calls": new_tool_calls,
         "knowledge": retrieved_knowledge,
+        "stop_reason": stop_reason,
     }
 
 
@@ -314,7 +460,10 @@ def run_tool_agent(
     tool_names: List[str],
     tools_enabled: bool = True,
     rag_enabled: bool = True,
+    agent_name: str = "agent",
     max_rounds: int = 3,
+    max_total_tool_calls: Optional[int] = None,
+    max_calls_per_tool: Optional[int] = None,
     temperature: float = 0.3,
     max_tokens: int = 1024,
 ) -> Dict:
@@ -350,7 +499,13 @@ def run_tool_agent(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             tool_schemas=tool_schemas,
+            allowed_tool_names=active_tool_names,
+            tools_enabled=tools_enabled,
+            rag_enabled=rag_enabled,
+            agent_name=agent_name,
             max_rounds=max_rounds,
+            max_total_tool_calls=max_total_tool_calls,
+            max_calls_per_tool=max_calls_per_tool,
             temperature=temperature,
             max_tokens=max_tokens,
         )
@@ -365,10 +520,13 @@ def run_tool_agent(
     return _run_text_mode(
         system_prompt=text_system,
         user_prompt=user_prompt,
-        allowed_tool_names=tool_names,
+        allowed_tool_names=active_tool_names,
         tools_enabled=tools_enabled,
         rag_enabled=rag_enabled,
+        agent_name=agent_name,
         max_rounds=max_rounds,
+        max_total_tool_calls=max_total_tool_calls,
+        max_calls_per_tool=max_calls_per_tool,
         temperature=temperature,
         max_tokens=max_tokens,
     )

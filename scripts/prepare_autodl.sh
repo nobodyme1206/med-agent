@@ -50,31 +50,62 @@ pip install -r requirements_autodl.txt -q
 
 # ─── 5. 注册 SFT 数据集到 LLaMA-Factory ───
 echo "[4/5] 注册 SFT 数据集..."
-# 复制数据到 LLaMA-Factory 数据目录
-cp data/synth/sft_data/agent_sft.json $LLAMA_FACTORY_DIR/data/agent_sft.json
+
+for src in \
+    data/synth/sft_data/agent_sft.json \
+    data/synth/sft_data/router_sft.json \
+    data/synth/sft_data/planner_sft.json \
+    data/synth/sft_data/summary_sft.json \
+    data/synth/sft_data/rest_sft.json \
+    data/synth/sft_data/hard_case_sft.json \
+    data/synth/sft_data/hard_case_router_sft.json \
+    data/synth/sft_data/hard_case_planner_sft.json \
+    data/synth/sft_data/hard_case_summary_sft.json; do
+    if [ -f "$src" ]; then
+        cp "$src" "$DATA_DIR/$(basename "$src")"
+    fi
+done
 
 # 合并 dataset_info.json
 python -c "
 import json
-info_path = '$LLAMA_FACTORY_DIR/data/dataset_info.json'
-with open(info_path, 'r') as f:
-    info = json.load(f)
-# 注册 med_agent_sft 数据集
-info['med_agent_sft'] = {
-    'file_name': 'agent_sft.json',
+import os
+info_path = '$DATA_DIR/dataset_info.json'
+source_info_path = '$LLAMA_FACTORY_DIR/data/dataset_info.json'
+if os.path.exists(info_path):
+    with open(info_path, 'r') as f:
+        info = json.load(f)
+else:
+    with open(source_info_path, 'r') as f:
+        info = json.load(f)
+base_cfg = {
     'formatting': 'sharegpt',
-    'columns': {'messages': 'messages'},
+    'columns': {'messages': 'conversations'},
     'tags': {
-        'role_tag': 'role',
-        'content_tag': 'content',
-        'user_tag': 'user',
-        'assistant_tag': 'assistant',
+        'role_tag': 'from',
+        'content_tag': 'value',
+        'user_tag': 'human',
+        'assistant_tag': 'gpt',
         'system_tag': 'system'
     }
 }
+for name, file_name in {
+    'med_agent_sft': 'agent_sft.json',
+    'med_agent_router': 'router_sft.json',
+    'med_agent_planner': 'planner_sft.json',
+    'med_agent_summary': 'summary_sft.json',
+    'med_agent_rest': 'rest_sft.json',
+    'med_agent_failures': 'hard_case_sft.json',
+    'med_agent_failure_router': 'hard_case_router_sft.json',
+    'med_agent_failure_planner': 'hard_case_planner_sft.json',
+    'med_agent_failure_summary': 'hard_case_summary_sft.json',
+}.items():
+    cfg = dict(base_cfg)
+    cfg['file_name'] = file_name
+    info[name] = cfg
 with open(info_path, 'w') as f:
     json.dump(info, f, ensure_ascii=False, indent=2)
-print(f'已注册 med_agent_sft 到 {info_path}')
+print(f'已注册 MedAgent 数据集到 {info_path}')
 "
 
 # ─── 6. 验证 ───

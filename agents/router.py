@@ -69,6 +69,7 @@ def route_patient(state: AgentState) -> AgentState:
         return {
             "current_department": "急诊科",
             "patient_info": f"急危重症：{last_user_msg[:100]}",
+            "router_reasoning": "检测到急危重症关键词，直接进入急诊路径",
             "confidence": 0.95,
             "should_escalate": True,
             "escalate_reason": "检测到急危重症症状，建议立即就医",
@@ -91,6 +92,7 @@ def route_patient(state: AgentState) -> AgentState:
         return {
             "current_department": "内科",
             "patient_info": last_user_msg[:200],
+            "router_reasoning": "路由模型失败，使用默认内科回退",
             "confidence": 0.3,
         }
 
@@ -113,6 +115,7 @@ def route_patient(state: AgentState) -> AgentState:
         return {
             "current_department": department,
             "patient_info": last_user_msg[:200],
+            "router_reasoning": "路由输出解析失败，采用字符串匹配结果",
             "confidence": 0.5,
         }
 
@@ -131,5 +134,6 @@ def route_patient(state: AgentState) -> AgentState:
     return {
         "current_department": department,
         "patient_info": result.get("patient_info", last_user_msg[:200]),
+        "router_reasoning": result.get("reasoning", ""),
         "confidence": result.get("confidence", 0.5),
     }

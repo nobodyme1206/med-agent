@@ -36,6 +36,9 @@ def pharmacist_review(state: AgentState) -> AgentState:
     patient_info = state.get("patient_info", "")
     specialist_analysis = state.get("specialist_analysis", "")
     department = state.get("current_department", "")
+    tool_plan = state.get("tool_plan", [])
+    expected_evidence = state.get("expected_evidence", [])
+    plan_summary = state.get("plan_summary", "")
 
     # 从对话中提取上下文
     all_text = patient_info + " " + " ".join(
@@ -46,6 +49,9 @@ def pharmacist_review(state: AgentState) -> AgentState:
         f"【患者信息】{patient_info}\n"
         f"【就诊科室】{department}\n"
         f"【专科医生分析】{specialist_analysis}\n"
+        f"【执行计划】{plan_summary}\n"
+        f"【推荐药学工具】{', '.join(t for t in tool_plan if t in PHARMACIST_TOOLS) or '无'}\n"
+        f"【期望证据】{'；'.join(expected_evidence) if expected_evidence else '无'}\n"
         f"【对话上下文】{all_text[:500]}\n\n"
         f"请基于以上信息，提供用药评估和建议。"
         f"如果提到了具体药品，请先查询药品信息。"
@@ -55,14 +61,22 @@ def pharmacist_review(state: AgentState) -> AgentState:
     # 运行时配置（消融实验支持）
     from graph.workflow import _runtime_config
     tools_enabled = _runtime_config.get("use_tools", True)
+    max_tool_calls = _runtime_config.get("max_tool_calls")
+    max_calls_per_tool = _runtime_config.get("max_calls_per_tool")
+    planned_tools = [name for name in tool_plan if name in PHARMACIST_TOOLS]
+    if not planned_tools:
+        planned_tools = list(PHARMACIST_TOOLS)
 
     # 调用统一引擎
     result = run_tool_agent(
         system_prompt=PHARMACIST_SYSTEM_PROMPT,
         user_prompt=user_prompt,
-        tool_names=PHARMACIST_TOOLS,
+        tool_names=planned_tools,
         tools_enabled=tools_enabled,
         temperature=0.2,
+        agent_name="pharmacist",
+        max_total_tool_calls=max_tool_calls,
+        max_calls_per_tool=max_calls_per_tool,
     )
 
     drug_advice = result["response"]
@@ -76,4 +90,5 @@ def pharmacist_review(state: AgentState) -> AgentState:
     return {
         "drug_advice": drug_advice,
         "tool_calls": new_tool_calls,
+        "stop_reason": result.get("stop_reason", ""),
     }

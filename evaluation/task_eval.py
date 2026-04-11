@@ -14,99 +14,138 @@ from typing import List, Dict, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from evaluation.med_synonyms import normalize_medical_text
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────
-# Embedding 语义相似度
-# ─────────────────────────────────────────────
-
-_embed_fn = None
-
-def _get_embed_fn():
-    """懒加载 embedding 函数"""
-    global _embed_fn
-    if _embed_fn is not None:
-        return _embed_fn
-    try:
-        from utils.llm_client import embed
-        # 测试是否可用（检查向量非零，零向量说明 API 不可用）
-        test_result = embed(["test"])
-        if not test_result or all(v == 0.0 for v in test_result[0]):
-            raise ValueError("embedding 返回零向量，API 不可用")
-        _embed_fn = embed
-        logger.info("语义匹配模式: embedding 可用")
-    except Exception:
-        _embed_fn = False  # 标记不可用
-        logger.info("语义匹配模式: embedding 不可用，回退关键词匹配")
-    return _embed_fn
-
-
-def _extract_diagnosis(agent_response: str) -> str:
-    """
-    从 Agent 长回复中提取核心诊断结论（1-2句），
-    使诊断方向的语义比较更公平。
-
-    策略（按优先级）：
-    1. LLM 提取（最准确）
-    2. 规则提取（关键词定位段落）
-    3. 回退：取前200字
-    """
-    if not agent_response or len(agent_response) < 100:
-        return agent_response
-
-    # 策略1: 尝试 LLM 提取
-    try:
-        from utils.llm_client import chat
-        extracted = chat(
-            f"请从以下医疗回复中，用一句话提取核心诊断方向（只说可能的疾病/病因方向，不超过50字）：\n\n{agent_response[:800]}",
-            temperature=0.0, max_tokens=80,
-        )
-        if extracted and len(extracted.strip()) >= 5:
-            return extracted.strip()
-    except Exception:
-        pass
-
-    # 策略2: 规则提取 — 找包含诊断关键词的句子
+def _normalize_text(text: str) -> str:
     import re
-    diagnosis_keywords = ["可能", "考虑", "怀疑", "提示", "倾向", "不排除", "初步分析", "诊断方向"]
-    sentences = re.split(r'[。\n]', agent_response)
-    for sent in sentences:
-        sent = sent.strip()
-        if len(sent) >= 10 and any(kw in sent for kw in diagnosis_keywords):
-            return sent[:150]
-
-    # 策略3: 回退
-    return agent_response[:200]
+    return re.sub(r"[\s\W_]+", "", (text or "").lower())
 
 
-def _semantic_similarity(text_a: str, text_b: str) -> float:
-    """
-    计算两段文本的语义相似度 (cosine similarity)。
-    embedding 不可用时回退到关键词匹配 ratio。
-    """
-    embed_fn = _get_embed_fn()
-    if embed_fn and embed_fn is not False:
-        try:
-            import numpy as np
-            vecs = embed_fn([text_a, text_b])
-            a, b = np.array(vecs[0]), np.array(vecs[1])
-            norm_a, norm_b = np.linalg.norm(a), np.linalg.norm(b)
-            if norm_a == 0 or norm_b == 0:
-                return 0.0
-            return float(np.dot(a, b) / (norm_a * norm_b))
-        except Exception:
-            pass
-    # fallback: 字符级 ROUGE-L（最长公共子序列），对中文友好
-    return _rouge_l(text_a, text_b)
+def _extract_structured_output(pred: Dict) -> Dict:
+    structured = pred.get("structured_output")
+    if not isinstance(structured, dict):
+        structured = {}
+    tool_calls = pred.get("tool_calls", [])
+    used_tools = structured.get("used_tools") or [tc.get("tool_name", "") for tc in tool_calls if tc.get("tool_name")]
+    return {
+        "department": structured.get("department") or pred.get("current_department", ""),
+        "diagnosis_direction": structured.get("diagnosis_direction") or pred.get("specialist_analysis") or pred.get("final_response", ""),
+        "recommended_tests": structured.get("recommended_tests") or [],
+        "medication_advice": structured.get("medication_advice") or [],
+        "need_followup": bool(structured.get("need_followup", pred.get("should_escalate", False))),
+        "followup_actions": structured.get("followup_actions") or [],
+        "evidence_summary": structured.get("evidence_summary") or [],
+        "used_tools": used_tools,
+        "tool_plan": structured.get("tool_plan") or pred.get("tool_plan", []),
+        "final_response": structured.get("final_response") or pred.get("final_response", ""),
+    }
+
+
+def _extract_reference_struct(ref: Dict) -> Dict:
+    expected_tools = ref.get("preferred_tool_sequence") or ref.get("expected_tools") or ref.get("tools_used") or []
+    if isinstance(expected_tools, str):
+        expected_tools = [expected_tools]
+    recommended_tests = ref.get("recommended_tests") or []
+    if isinstance(recommended_tests, str):
+        recommended_tests = [recommended_tests]
+    return {
+        "department": ref.get("expected_department") or ref.get("department", ""),
+        "diagnosis_direction": ref.get("expected_diagnosis_direction") or ref.get("final_diagnosis_direction", ""),
+        "recommended_tests": recommended_tests,
+        "expected_tools": expected_tools,
+        "expected_first_tool": ref.get("expected_first_tool") or (expected_tools[0] if expected_tools else ""),
+        "need_pharmacist": ref.get("need_pharmacist"),
+    }
+
+
+def _keyword_f1(text_a: str, text_b: str) -> float:
+    a_terms = set(_extract_keywords(text_a))
+    b_terms = set(_extract_keywords(text_b))
+    if not a_terms and not b_terms:
+        return 1.0
+    if not a_terms or not b_terms:
+        return 0.0
+    overlap = len(a_terms & b_terms)
+    precision = overlap / len(a_terms)
+    recall = overlap / len(b_terms)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
+def _soft_text_match(text_a: str, text_b: str) -> float:
+    syn_a = normalize_medical_text(text_a or "")
+    syn_b = normalize_medical_text(text_b or "")
+    norm_a = _normalize_text(syn_a)
+    norm_b = _normalize_text(syn_b)
+    if not norm_a and not norm_b:
+        return 1.0
+    if not norm_a or not norm_b:
+        return 0.0
+    if norm_a == norm_b:
+        return 1.0
+    if norm_a in norm_b or norm_b in norm_a:
+        shorter = min(len(norm_a), len(norm_b))
+        longer = max(len(norm_a), len(norm_b))
+        if longer > 0:
+            return max(shorter / longer, 0.75)
+    rouge = _rouge_l(syn_a, syn_b)
+    keyword = _keyword_f1(syn_a, syn_b)
+    return max(rouge, keyword)
+
+
+def _list_recall(pred_items: List[str], ref_items: List[str]) -> Optional[float]:
+    pred_set = {_normalize_text(normalize_medical_text(x)) for x in pred_items if _normalize_text(x)}
+    ref_set = {_normalize_text(normalize_medical_text(x)) for x in ref_items if _normalize_text(x)}
+    if not ref_set:
+        return None
+    if not pred_set:
+        return 0.0
+    return len(pred_set & ref_set) / len(ref_set)
+
+
+def evaluate_single_prediction(
+    pred: Dict,
+    ref: Dict,
+    correct_threshold: float = 0.7,
+    partial_threshold: float = 0.45,
+) -> Dict:
+    pred_struct = _extract_structured_output(pred)
+    ref_struct = _extract_reference_struct(ref)
+
+    department_match = float(
+        bool(pred_struct["department"])
+        and bool(ref_struct["department"])
+        and pred_struct["department"] == ref_struct["department"]
+    )
+    diagnosis_similarity = _soft_text_match(
+        pred_struct["diagnosis_direction"],
+        ref_struct["diagnosis_direction"],
+    )
+    combined_score = 0.4 * department_match + 0.6 * diagnosis_similarity
+    test_recall = _list_recall(pred_struct.get("recommended_tests", []), ref_struct.get("recommended_tests", []))
+
+    return {
+        "department": ref_struct["department"] or "unknown",
+        "pred_department": pred_struct["department"],
+        "department_match": department_match,
+        "diagnosis_similarity": diagnosis_similarity,
+        "combined_score": combined_score,
+        "test_recall": test_recall,
+        "is_correct": combined_score >= correct_threshold,
+        "is_partial": combined_score >= partial_threshold,
+    }
 
 
 def evaluate_task_completion(
     predictions: List[Dict],
     references: List[Dict],
-    correct_threshold: float = 0.45,
-    partial_threshold: float = 0.25,
+    correct_threshold: float = 0.7,
+    partial_threshold: float = 0.45,
 ) -> Dict:
     """
     评测任务完成率：最终诊断方向是否正确。
@@ -129,42 +168,61 @@ def evaluate_task_completion(
 
     correct = 0
     partial = 0
+    department_correct = 0
+    diagnosis_correct = 0
     similarities = []
+    combined_scores = []
+    test_recalls = []
     by_department = {}
+    details = []
 
     for pred, ref in zip(predictions, references):
-        dept = ref.get("department", "") or ref.get("expected_department", "unknown")
+        detail = evaluate_single_prediction(
+            pred,
+            ref,
+            correct_threshold=correct_threshold,
+            partial_threshold=partial_threshold,
+        )
+        details.append(detail)
+
+        dept = detail["department"]
         if dept not in by_department:
             by_department[dept] = {"total": 0, "correct": 0, "partial": 0}
         by_department[dept]["total"] += 1
 
-        pred_response = pred.get("final_response", "")
-        ref_diagnosis = ref.get("final_diagnosis_direction", "") or ref.get("expected_diagnosis_direction", "")
+        similarities.append(detail["diagnosis_similarity"])
+        combined_scores.append(detail["combined_score"])
+        if detail["test_recall"] is not None:
+            test_recalls.append(detail["test_recall"])
 
-        if not ref_diagnosis:
-            continue
+        if detail["department_match"]:
+            department_correct += 1
+        if detail["diagnosis_similarity"] >= correct_threshold:
+            diagnosis_correct += 1
 
-        # 从长回复中提取诊断结论，避免长文本 vs 短文本的相似度偏差
-        pred_diagnosis = _extract_diagnosis(pred_response)
-        sim = _semantic_similarity(pred_diagnosis, ref_diagnosis)
-        similarities.append(sim)
-
-        if sim >= correct_threshold:
+        if detail["is_correct"]:
             correct += 1
             by_department[dept]["correct"] += 1
-        elif sim >= partial_threshold:
+        elif detail["is_partial"]:
             partial += 1
             by_department[dept]["partial"] += 1
 
-    return {
+    result = {
         "total": total,
         "correct": correct,
         "partial_correct": partial,
         "accuracy": correct / total,
         "partial_accuracy": (correct + partial) / total,
+        "department_accuracy": department_correct / total,
+        "diagnosis_accuracy": diagnosis_correct / total,
         "avg_similarity": sum(similarities) / max(len(similarities), 1),
+        "avg_combined_score": sum(combined_scores) / max(len(combined_scores), 1),
         "by_department": by_department,
+        "details": details,
     }
+    if test_recalls:
+        result["avg_test_recall"] = sum(test_recalls) / len(test_recalls)
+    return result
 
 
 def evaluate_tool_usage(predictions: List[Dict], references: List[Dict]) -> Dict:
@@ -184,13 +242,17 @@ def evaluate_tool_usage(predictions: List[Dict], references: List[Dict]) -> Dict
     recalls = []
     f1s = []
     param_accuracies = []
+    first_tool_accuracies = []
+    strict_sequence_matches = []
+    subset_matches = []
+    duplicate_rates = []
+    offplan_rates = []
 
     for pred, ref in zip(predictions, references):
-        pred_calls = pred.get("tool_calls", [])
+        pred_calls = [tc for tc in pred.get("tool_calls", []) if tc.get("tool_name")]
         pred_tools = [tc.get("tool_name", "") for tc in pred_calls]
-        ref_tools = ref.get("tools_used", []) or ref.get("expected_tools", [])
+        ref_tools = ref.get("preferred_tool_sequence") or ref.get("tools_used", []) or ref.get("expected_tools", [])
 
-        # 从 reference dialogue 提取带参数的工具调用
         ref_calls_with_args = _extract_ref_tool_calls(ref)
 
         if not ref_tools and not pred_tools:
@@ -198,9 +260,13 @@ def evaluate_tool_usage(predictions: List[Dict], references: List[Dict]) -> Dict
             recalls.append(1.0)
             f1s.append(1.0)
             param_accuracies.append(1.0)
+            first_tool_accuracies.append(1.0)
+            strict_sequence_matches.append(1.0)
+            subset_matches.append(1.0)
+            duplicate_rates.append(0.0)
+            offplan_rates.append(0.0)
             continue
 
-        # ─ Layer 1: 名称 F1 ─
         pred_set = set(pred_tools)
         ref_set = set(ref_tools)
         tp = len(pred_set & ref_set)
@@ -211,7 +277,14 @@ def evaluate_tool_usage(predictions: List[Dict], references: List[Dict]) -> Dict
         recalls.append(recall)
         f1s.append(f1)
 
-        # ─ Layer 2: 参数准确率 ─
+        ref_first = ref_tools[0] if ref_tools else ""
+        pred_first = pred_tools[0] if pred_tools else ""
+        first_tool_accuracies.append(float(ref_first == pred_first if (ref_first or pred_first) else True))
+        strict_sequence_matches.append(float(pred_tools == ref_tools))
+        subset_matches.append(float(all(t in ref_set for t in pred_tools)))
+        duplicate_rates.append((len(pred_tools) - len(set(pred_tools))) / max(len(pred_tools), 1))
+        offplan_rates.append(sum(1 for t in pred_tools if t not in ref_set) / max(len(pred_tools), 1))
+
         if ref_calls_with_args and pred_calls:
             param_acc = _compute_param_accuracy(pred_calls, ref_calls_with_args)
             param_accuracies.append(param_acc)
@@ -225,6 +298,11 @@ def evaluate_tool_usage(predictions: List[Dict], references: List[Dict]) -> Dict
         "avg_tool_calls_per_case": sum(
             len(p.get("tool_calls", [])) for p in predictions
         ) / total,
+        "first_tool_accuracy": sum(first_tool_accuracies) / max(len(first_tool_accuracies), 1),
+        "strict_sequence_accuracy": sum(strict_sequence_matches) / max(len(strict_sequence_matches), 1),
+        "subset_match_accuracy": sum(subset_matches) / max(len(subset_matches), 1),
+        "duplicate_tool_rate": sum(duplicate_rates) / max(len(duplicate_rates), 1),
+        "offplan_tool_rate": sum(offplan_rates) / max(len(offplan_rates), 1),
     }
     if param_accuracies:
         result["avg_param_accuracy"] = sum(param_accuracies) / len(param_accuracies)

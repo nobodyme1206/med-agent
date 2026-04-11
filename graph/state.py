@@ -3,7 +3,13 @@ Agent 共享状态定义：LangGraph 状态机的核心数据结构。
 所有 Agent 节点通过读写此状态进行通信。
 """
 
-from typing import TypedDict, List, Dict, Optional, Any, Annotated
+from typing import TypedDict, List, Dict, Optional, Any
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
+
 import operator
 
 
@@ -13,6 +19,23 @@ class ToolCallRecord(TypedDict):
     input_args: Dict[str, Any]
     output: Any
     success: bool
+    agent_name: str
+    round_id: int
+    call_signature: str
+    skipped_reason: str
+
+
+class StructuredOutput(TypedDict):
+    department: str
+    diagnosis_direction: str
+    recommended_tests: List[str]
+    medication_advice: List[str]
+    need_followup: bool
+    followup_actions: List[str]
+    evidence_summary: List[str]
+    used_tools: List[str]
+    tool_plan: List[str]
+    final_response: str
 
 
 class AgentState(TypedDict):
@@ -37,16 +60,32 @@ class AgentState(TypedDict):
     messages: Annotated[List[Dict[str, str]], operator.add]
     patient_info: str
     current_department: str
+    router_reasoning: str
+    problem_type: str
+    tool_plan: List[str]
+    expected_evidence: List[str]
+    plan_summary: str
+    need_pharmacist: bool
+    differential_hypotheses: List[str]
+    information_gaps: List[str]
+    verification_criteria: List[str]
+    reasoning_chain: str
     specialist_analysis: str
     drug_advice: str
     tool_calls: Annotated[List[ToolCallRecord], operator.add]
     retrieved_knowledge: List[Dict]
+    reflection_feedback: str
+    reflection_passed: bool
+    reflection_count: int
+    structured_output: StructuredOutput
     confidence: float
     should_escalate: bool
     escalate_reason: str
     loop_count: int
+    stop_reason: str
     final_response: str
     token_usage: int
+    memory_context: str
 
 
 # ─────────────────────────────────────────────
@@ -57,6 +96,7 @@ DEPARTMENTS = [
     "内科", "外科", "妇产科", "儿科", "急诊科",
     "神经内科", "心血管内科", "呼吸内科", "消化内科",
     "内分泌科", "骨科", "泌尿外科", "皮肤科", "眼科", "耳鼻喉科",
+    "精神科", "风湿免疫科",
 ]
 
 EMERGENCY_KEYWORDS = [
@@ -66,5 +106,8 @@ EMERGENCY_KEYWORDS = [
 ]
 
 MAX_LOOP_COUNT = 3
+MAX_REFLECTION_RETRIES = 2
 CONFIDENCE_THRESHOLD = 0.6
 TOKEN_BUDGET = 8000
+MAX_TOOL_CALLS = 6
+MAX_CALLS_PER_TOOL = 2

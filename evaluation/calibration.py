@@ -59,19 +59,13 @@ class CalibrationAnalyzer:
             self.correctness = self._compute_correctness()
 
     def _compute_correctness(self) -> List[bool]:
-        """简单判断每个 case 是否正确（关键词重叠）"""
+        """基于结构化评测结果判断每个 case 是否正确"""
+        from evaluation.task_eval import evaluate_single_prediction
+
         results = []
         for pred, ref in zip(self.predictions, self.references):
-            pred_text = pred.get("final_response", "")
-            ref_text = ref.get("final_diagnosis_direction", "")
-            if not ref_text:
-                results.append(True)  # 无标准答案时默认正确
-                continue
-            # 简单重叠检查
-            ref_chars = set(ref_text) - set("，。、；：的了是在有不")
-            pred_chars = set(pred_text)
-            overlap = len(ref_chars & pred_chars) / max(len(ref_chars), 1)
-            results.append(overlap >= 0.4)
+            detail = evaluate_single_prediction(pred, ref)
+            results.append(bool(detail.get("is_correct", False)))
         return results
 
     def calibration_curve(self) -> List[Dict]:

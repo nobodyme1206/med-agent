@@ -36,22 +36,61 @@ from training.reward import (
     tool_accuracy_reward,
     safety_reward,
     format_reward,
+    structured_output_reward,
+    plan_adherence_reward,
+    duplicate_control_reward,
+    reasoning_chain_reward,
+    reflection_quality_reward,
 )
 
 
-def compute_reward(completion: str, ground_truth: str = "", expected_tools=None) -> dict:
+def compute_reward(
+    completion: str,
+    ground_truth: str = "",
+    expected_tools=None,
+    expected_first_tool: str = "",
+    preferred_tool_sequence=None,
+    tool_plan=None,
+    structured_output_target=None,
+) -> dict:
     """计算单个 completion 的多维度奖励"""
     r_task = task_completion_reward(completion, ground_truth=ground_truth)
     r_tool = tool_accuracy_reward(completion, expected_tools=expected_tools)
     r_safe = safety_reward(completion)
     r_fmt = format_reward(completion)
-    total = 0.30 * r_task + 0.20 * r_tool + 0.20 * r_safe + 0.30 * r_fmt
+    r_struct = structured_output_reward(completion, structured_output_target=structured_output_target, ground_truth=ground_truth)
+    r_plan = plan_adherence_reward(
+        completion,
+        expected_tools=expected_tools,
+        expected_first_tool=expected_first_tool,
+        preferred_tool_sequence=preferred_tool_sequence,
+        tool_plan=tool_plan,
+    )
+    r_dup = duplicate_control_reward(completion)
+    r_reasoning = reasoning_chain_reward(completion)
+    r_reflection = reflection_quality_reward(completion)
+    total = (
+        0.18 * r_task
+        + 0.10 * r_tool
+        + 0.10 * r_safe
+        + 0.15 * r_fmt
+        + 0.12 * r_struct
+        + 0.10 * r_plan
+        + 0.05 * r_dup
+        + 0.12 * r_reasoning
+        + 0.08 * r_reflection
+    )
     return {
         "total": total,
         "task": r_task,
         "tool": r_tool,
         "safe": r_safe,
         "format": r_fmt,
+        "structured": r_struct,
+        "plan": r_plan,
+        "duplicate": r_dup,
+        "reasoning": r_reasoning,
+        "reflection": r_reflection,
     }
 
 
@@ -88,6 +127,10 @@ def main():
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--batch_size", type=int, default=1,
                         help="Number of prompts to process at once")
+    parser.add_argument("--rest_round", type=int, default=1,
+                        help="迭代 ReST 轮次（>1 时从上一轮输出加载已筛选数据，与新生成合并）")
+    parser.add_argument("--prev_rest_data", type=str, default="",
+                        help="上一轮 ReST 输出的 SFT 数据路径（用于迭代合并）")
     args = parser.parse_args()
 
     # ─── 加载模型 ───
@@ -148,6 +191,10 @@ def main():
         prompt = item["prompt"]
         gt = item.get("ground_truth", "")
         et = item.get("expected_tools", [])
+        eft = item.get("expected_first_tool", "")
+        pref = item.get("preferred_tool_sequence", [])
+        plan = item.get("tool_plan", [])
+        struct_target = item.get("structured_output_target", None)
 
         # 构建输入
         text = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
@@ -168,7 +215,15 @@ def main():
             )
         for seq in outputs:
             comp = tokenizer.decode(seq[prompt_len:], skip_special_tokens=True)
-            reward = compute_reward(comp, ground_truth=gt, expected_tools=et)
+            reward = compute_reward(
+                comp,
+                ground_truth=gt,
+                expected_tools=et,
+                expected_first_tool=eft,
+                preferred_tool_sequence=pref,
+                tool_plan=plan,
+                structured_output_target=struct_target,
+            )
             completions.append((comp, reward))
             stats["total_generated"] += 1
 
@@ -194,16 +249,24 @@ def main():
                 f"avg_kept_reward={avg_r:.3f}"
             )
 
+    # ─── 迭代合并（将上一轮高质量数据与新生成合并）───
+    if args.rest_round > 1 and args.prev_rest_data and os.path.exists(args.prev_rest_data):
+        with open(args.prev_rest_data, "r", encoding="utf-8") as f:
+            prev_data = json.load(f)
+        logger.info(f"ReST Round {args.rest_round}: 合并上一轮 {len(prev_data)} 条 + 本轮 {len(sft_samples)} 条")
+        sft_samples = prev_data + sft_samples
+
     # ─── 保存结果 ───
     with open(args.output_path, "w", encoding="utf-8") as f:
         json.dump(sft_samples, f, ensure_ascii=False, indent=2)
 
     avg_reward = sum(stats["rewards"]) / max(len(stats["rewards"]), 1)
     logger.info(f"\n{'='*60}")
-    logger.info(f"ReST Generation 完成!")
+    logger.info(f"ReST Generation 完成! (Round {args.rest_round})")
     logger.info(f"  总 prompt 数: {len(prompts_data)}")
     logger.info(f"  总生成数: {stats['total_generated']}")
-    logger.info(f"  保留样本数: {stats['total_kept']} ({stats['total_kept']/max(stats['total_generated'],1)*100:.1f}%)")
+    logger.info(f"  本轮保留: {stats['total_kept']} ({stats['total_kept']/max(stats['total_generated'],1)*100:.1f}%)")
+    logger.info(f"  合并后总量: {len(sft_samples)}")
     logger.info(f"  平均 reward: {avg_reward:.4f}")
     logger.info(f"  输出文件: {args.output_path}")
     logger.info(f"{'='*60}")

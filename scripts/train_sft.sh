@@ -22,7 +22,7 @@ fi
 # 检查数据集注册
 python -c "
 import json
-with open('$LLAMA_FACTORY_DIR/data/dataset_info.json') as f:
+with open('$WORK_DIR/data/dataset_info.json') as f:
     info = json.load(f)
 assert 'med_agent_sft' in info, 'med_agent_sft 未注册!'
 print('数据集注册: OK')

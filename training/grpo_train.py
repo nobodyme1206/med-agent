@@ -74,6 +74,26 @@ def load_dataset(data_path: str):
                 metadata["expected_tools"] = []
             metadata["expected_tools"].append(item["expected_tools"])
 
+        if "expected_first_tool" in item:
+            if "expected_first_tool" not in metadata:
+                metadata["expected_first_tool"] = []
+            metadata["expected_first_tool"].append(item["expected_first_tool"])
+
+        if "preferred_tool_sequence" in item:
+            if "preferred_tool_sequence" not in metadata:
+                metadata["preferred_tool_sequence"] = []
+            metadata["preferred_tool_sequence"].append(item["preferred_tool_sequence"])
+
+        if "tool_plan" in item:
+            if "tool_plan" not in metadata:
+                metadata["tool_plan"] = []
+            metadata["tool_plan"].append(item["tool_plan"])
+
+        if "structured_output_target" in item:
+            if "structured_output_target" not in metadata:
+                metadata["structured_output_target"] = []
+            metadata["structured_output_target"].append(item["structured_output_target"])
+
     ds_dict = {"prompt": prompts}
     ds_dict.update(metadata)
     dataset = Dataset.from_dict(ds_dict)
@@ -151,15 +171,53 @@ def main():
             else:
                 texts.append(str(c))
 
+        def expand_scalar(value):
+            if value is None:
+                return None
+            if isinstance(value, list):
+                if len(value) == len(texts):
+                    return value
+                if len(value) == 1:
+                    return value * len(texts)
+            return [value] * len(texts)
+
+        def expand_sequence(value):
+            if value is None:
+                return None
+            if isinstance(value, list):
+                if not value:
+                    return [[] for _ in texts]
+                first = value[0]
+                if isinstance(first, (list, dict)):
+                    if len(value) == len(texts):
+                        return value
+                    if len(value) == 1:
+                        return value * len(texts)
+                return [value] * len(texts)
+            return [value] * len(texts)
+
         # TRL GRPOTrainer 将 dataset 中的额外列作为 kwargs 传入
         gt = kwargs.get("ground_truth", None)
         et = kwargs.get("expected_tools", None)
-        # gt/et 可能是单值（当前 batch 切片），需要包装为 list
-        if gt is not None and not isinstance(gt, list):
-            gt = [gt] * len(texts)
-        if et is not None and not isinstance(et, list):
-            et = [et] * len(texts)
-        return med_agent_reward(texts, ground_truth=gt, expected_tools=et)
+        eft = kwargs.get("expected_first_tool", None)
+        pref = kwargs.get("preferred_tool_sequence", None)
+        plan = kwargs.get("tool_plan", None)
+        struct_target = kwargs.get("structured_output_target", None)
+        gt = expand_scalar(gt)
+        et = expand_sequence(et)
+        eft = expand_scalar(eft)
+        pref = expand_sequence(pref)
+        plan = expand_sequence(plan)
+        struct_target = expand_sequence(struct_target)
+        return med_agent_reward(
+            texts,
+            ground_truth=gt,
+            expected_tools=et,
+            expected_first_tool=eft,
+            preferred_tool_sequence=pref,
+            tool_plan=plan,
+            structured_output_target=struct_target,
+        )
 
     # ─── 加载模型 ───
     logger.info(f"初始化 GRPOTrainer: model={args.model_path}")

@@ -197,7 +197,79 @@ def check_safety_compliance(case: Dict) -> Tuple[bool, List[str]]:
 
 
 # ─────────────────────────────────────────────
-# Checker 5: 去重/去近似
+# Checker 5: 推理链完整性（PARM P2 新增）
+# ─────────────────────────────────────────────
+
+def check_reasoning_chain(case: Dict) -> Tuple[bool, List[str]]:
+    """检查推理链是否完整：有推理链文本、有鉴别诊断、推理链与诊断相关"""
+    issues = []
+
+    reasoning = case.get("reasoning_chain", "")
+    hypotheses = case.get("differential_hypotheses", [])
+    diagnosis = case.get("final_diagnosis_direction", "")
+
+    # 推理链存在性
+    if not reasoning or len(reasoning.strip()) < 10:
+        issues.append("推理链缺失或过短")
+
+    # 鉴别诊断存在性
+    if not hypotheses or hypotheses == ["待专科分析后确定"]:
+        issues.append("缺少鉴别诊断假设")
+
+    # 推理链与诊断方向相关性
+    if reasoning and diagnosis and len(diagnosis) >= 2:
+        # 至少共享一个 2 字中文词
+        import re
+        diag_terms = set(re.findall(r'[\u4e00-\u9fff]{2,4}', diagnosis))
+        if diag_terms:
+            overlap = sum(1 for t in diag_terms if t in reasoning)
+            if overlap == 0:
+                issues.append("推理链与诊断方向无关联")
+
+    passed = len(issues) == 0
+    return passed, issues
+
+
+# ─────────────────────────────────────────────
+# Checker 6: Reflection 一致性（PARM P2 新增）
+# ─────────────────────────────────────────────
+
+def check_reflection_consistency(case: Dict) -> Tuple[bool, List[str]]:
+    """检查 Reflection 反馈与最终输出的一致性"""
+    issues = []
+    dialogue = case.get("dialogue", [])
+
+    reflection_feedback = case.get("reflection_feedback", "")
+    reflection_count = case.get("reflection_count", 0)
+
+    # 如果有 reflection 重试，检查反馈是否被采纳
+    if reflection_count > 0 and reflection_feedback:
+        # 最后一个 agent 回复应该体现反馈内容
+        last_agent_response = ""
+        for turn in reversed(dialogue):
+            if turn.get("role") == "agent":
+                last_agent_response = turn.get("response", "")
+                break
+        if last_agent_response:
+            import re
+            feedback_terms = set(re.findall(r'[\u4e00-\u9fff]{2,4}', reflection_feedback))
+            stopwords = {"的", "了", "是", "在", "有", "和", "与", "或", "及", "等", "请", "你", "我"}
+            feedback_terms -= stopwords
+            if feedback_terms:
+                overlap = sum(1 for t in feedback_terms if t in last_agent_response)
+                if overlap == 0:
+                    issues.append("Reflection 反馈未被采纳到最终回复")
+
+    # 如果 reflection_count > 2，可能质量问题
+    if reflection_count > 2:
+        issues.append(f"Reflection 重试过多 ({reflection_count} 次)，可能质量不稳定")
+
+    passed = len(issues) == 0
+    return passed, issues
+
+
+# ─────────────────────────────────────────────
+# Checker 7: 去重/去近似
 # ─────────────────────────────────────────────
 
 def _case_fingerprint(case: Dict) -> str:
@@ -307,6 +379,8 @@ def run_quality_pipeline(
         ("tool_calls", check_tool_calls),
         ("medical_consistency", check_medical_consistency),
         ("safety_compliance", check_safety_compliance),
+        ("reasoning_chain", check_reasoning_chain),
+        ("reflection_consistency", check_reflection_consistency),
     ]
 
     passed_cases = []

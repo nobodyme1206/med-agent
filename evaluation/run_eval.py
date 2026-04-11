@@ -18,6 +18,75 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
+def _extract_patient_input(case: dict) -> str:
+    for turn in case.get("dialogue", []):
+        if turn.get("role") == "patient":
+            return turn.get("content", "")
+    return case.get("chief_complaint", "") or case.get("patient_input", "")
+
+
+def _build_failure_cases(predictions, references, task_result):
+    details = task_result.get("details", []) if isinstance(task_result, dict) else []
+    failures = []
+    tag_counts = {}
+    for idx, (pred, ref, detail) in enumerate(zip(predictions, references, details)):
+        if detail.get("is_correct"):
+            continue
+
+        expected_tools = ref.get("preferred_tool_sequence") or ref.get("expected_tools") or ref.get("tools_used") or []
+        predicted_tools = [tc.get("tool_name", "") for tc in pred.get("tool_calls", []) if tc.get("tool_name")]
+        expected_first_tool = ref.get("expected_first_tool") or (expected_tools[0] if expected_tools else "")
+        predicted_first_tool = predicted_tools[0] if predicted_tools else ""
+
+        tags = []
+        if not detail.get("department_match"):
+            tags.append("department_mismatch")
+        if detail.get("diagnosis_similarity", 0.0) < 0.7:
+            tags.append("diagnosis_mismatch")
+        test_recall = detail.get("test_recall")
+        if test_recall is not None and test_recall < 1.0:
+            tags.append("missing_tests")
+        if expected_first_tool and predicted_first_tool != expected_first_tool:
+            tags.append("wrong_first_tool")
+        if any(tool not in set(expected_tools) for tool in predicted_tools):
+            tags.append("offplan_tool")
+        if len(predicted_tools) > len(set(predicted_tools)):
+            tags.append("duplicate_tool")
+
+        for tag in tags:
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+        failures.append({
+            "case_id": idx,
+            "patient_input": _extract_patient_input(ref),
+            "expected_department": ref.get("expected_department") or ref.get("department", ""),
+            "predicted_department": detail.get("pred_department", ""),
+            "expected_diagnosis_direction": ref.get("expected_diagnosis_direction") or ref.get("final_diagnosis_direction", ""),
+            "predicted_diagnosis_direction": pred.get("structured_output", {}).get("diagnosis_direction") or pred.get("final_response", ""),
+            "expected_tools": expected_tools,
+            "predicted_tools": predicted_tools,
+            "expected_first_tool": expected_first_tool,
+            "predicted_first_tool": predicted_first_tool,
+            "recommended_tests": ref.get("recommended_tests", []),
+            "combined_score": detail.get("combined_score", 0.0),
+            "diagnosis_similarity": detail.get("diagnosis_similarity", 0.0),
+            "department_match": detail.get("department_match", 0.0),
+            "test_recall": test_recall,
+            "failure_tags": tags,
+            "tool_plan": ref.get("preferred_tool_sequence") or ref.get("expected_tools") or [],
+            "need_pharmacist": ref.get("need_pharmacist", False),
+            "prediction": pred,
+            "reference": ref,
+        })
+
+    return {
+        "total_failures": len(failures),
+        "failure_rate": len(failures) / max(len(predictions), 1),
+        "tag_counts": tag_counts,
+        "cases": failures,
+    }
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="MedAgent 一键评测")
     parser.add_argument("--eval_data", type=str, required=True, help="评测数据集路径")
@@ -28,6 +97,12 @@ def parse_args():
     parser.add_argument("--red_team_data", type=str, default="", help="外部红队测试集路径（默认使用内置 case）")
     parser.add_argument("--run_judge", action="store_true", help="运行 LLM-as-Judge")
     parser.add_argument("--judge_model", type=str, default=None, help="Judge 模型")
+    parser.add_argument("--secondary_judge_model", type=str, default=None, help="副 Judge 模型")
+    parser.add_argument("--disable_tools", action="store_true", help="消融：禁用工具调用")
+    parser.add_argument("--disable_rag", action="store_true", help="消融：禁用 RAG")
+    parser.add_argument("--use_memory", action="store_true", help="消融：启用长期记忆")
+    parser.add_argument("--max_tool_calls", type=int, default=0, help="每个 case 的总工具调用上限（0=默认）")
+    parser.add_argument("--max_calls_per_tool", type=int, default=0, help="每个工具单独调用上限（0=默认）")
     parser.add_argument("--max_cases", type=int, default=0, help="最多评测几条（0=全部）")
     return parser.parse_args()
 
@@ -37,7 +112,19 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report = {"timestamp": time.time(), "eval_data": args.eval_data}
+    report = {
+        "timestamp": time.time(),
+        "eval_data": args.eval_data,
+        "runtime": {
+            "use_tools": not args.disable_tools,
+            "use_rag": not args.disable_rag,
+            "use_memory": args.use_memory,
+            "max_tool_calls": args.max_tool_calls,
+            "max_calls_per_tool": args.max_calls_per_tool,
+            "judge_model": args.judge_model,
+            "secondary_judge_model": args.secondary_judge_model,
+        },
+    }
 
     # 加载评测数据
     with open(args.eval_data, "r", encoding="utf-8") as f:
@@ -85,7 +172,14 @@ def main():
                     patient_input = case.get("chief_complaint", "") or case.get("patient_input", "")
 
                 try:
-                    result = run_consultation(patient_input)
+                    result = run_consultation(
+                        patient_input,
+                        use_tools=not args.disable_tools,
+                        use_rag=not args.disable_rag,
+                        use_memory=args.use_memory,
+                        max_tool_calls=args.max_tool_calls or None,
+                        max_calls_per_tool=args.max_calls_per_tool or None,
+                    )
                 except Exception as e:
                     logger.error(f"Case {i}: Agent 运行失败 - {e}")
                     result = {"final_response": "", "tool_calls": []}
@@ -107,21 +201,36 @@ def main():
         logger.info(f"加载已有预测: {len(predictions)} 条")
 
     # ─── 任务完成率 + 工具 F1 ───
-    if predictions:
+    if predictions and eval_cases:
         from evaluation.task_eval import evaluate_task_completion, evaluate_tool_usage
         task_result = evaluate_task_completion(predictions, eval_cases)
         tool_result = evaluate_tool_usage(predictions, eval_cases)
         report["task_completion"] = task_result
         report["tool_usage"] = tool_result
+        failure_result = _build_failure_cases(predictions, eval_cases, task_result)
+        report["failure_analysis"] = {
+            "total_failures": failure_result["total_failures"],
+            "failure_rate": failure_result["failure_rate"],
+            "tag_counts": failure_result["tag_counts"],
+        }
+        with open(output_dir / "failure_cases.json", "w", encoding="utf-8") as f:
+            json.dump(failure_result["cases"], f, ensure_ascii=False, indent=2, default=str)
         logger.info(f"任务完成率: {task_result.get('accuracy', 0):.2%}")
         logger.info(f"工具 F1: {tool_result.get('avg_f1', 0):.3f}")
 
     # ─── 轨迹效率 ───
     if predictions:
         from evaluation.trajectory_eval import evaluate_trajectory_efficiency
-        traj_result = evaluate_trajectory_efficiency(predictions)
+        traj_result = evaluate_trajectory_efficiency(predictions, eval_cases)
         report["trajectory_efficiency"] = traj_result
         logger.info(f"效率分数: {traj_result.get('efficiency_score', 0):.3f}")
+
+    # ─── 推理链评测 ───
+    if predictions:
+        from evaluation.reasoning_eval import evaluate_reasoning
+        reasoning_result = evaluate_reasoning(predictions, eval_cases if eval_cases else None)
+        report["reasoning"] = reasoning_result
+        logger.info(f"推理链分数: {reasoning_result.get('overall_reasoning_score', 0):.3f}")
 
     # ─── 置信度校准 ───
     if predictions:
@@ -179,13 +288,20 @@ def main():
                 ckpt_f.flush()
                 logger.info(f"安全进度: {i+1}/{len(safety_cases)}")
 
-        safety_result = evaluate_safety(safety_responses, test_cases=safety_cases)
+        safety_result = evaluate_safety(
+            safety_responses,
+            test_cases=safety_cases,
+            use_llm_judge=not args.disable_tools,
+            include_impossible=True,
+        )
         report["safety"] = safety_result
         logger.info(f"安全通过率: {safety_result.get('pass_rate', 0):.2%}")
+        if safety_result.get("dose_response_curve"):
+            logger.info(f"剂量-反应曲线: {safety_result['dose_response_curve']}")
 
     # ─── LLM-as-Judge（断点续跑，支持双模型交叉评分） ───
     if args.run_judge and predictions:
-        from evaluation.llm_judge import judge_single
+        from evaluation.llm_judge import judge_single, _merge_scores
 
         judge_ckpt_path = output_dir / "judge_checkpoint.jsonl"
         judge_scores = []
@@ -198,8 +314,12 @@ def main():
             judge_done = len(judge_scores)
             logger.info(f"Judge 从 checkpoint 恢复: {judge_done}/{len(predictions)}")
 
-        judge_model = args.judge_model  # 主评分模型（None 则用 CHAT_MODEL）
-        logger.info(f"运行 LLM-as-Judge (model={judge_model or 'default'})... ({judge_done}/{len(predictions)})")
+        judge_model = args.judge_model
+        secondary_model = args.secondary_judge_model
+        logger.info(
+            f"运行 LLM-as-Judge (primary={judge_model or 'default'}, secondary={secondary_model or 'none'})... "
+            f"({judge_done}/{len(predictions)})"
+        )
         with open(judge_ckpt_path, "a", encoding="utf-8") as ckpt_f:
             for i, (pred, ref) in enumerate(zip(predictions, eval_cases)):
                 if i < judge_done:
@@ -211,12 +331,22 @@ def main():
                         break
                 patient_input = patient_input or ref.get("chief_complaint", "") or ref.get("patient_input", "")
                 try:
-                    score = judge_single(
+                    primary = judge_single(
                         patient_input=patient_input,
                         agent_response=pred.get("final_response", ""),
                         tool_calls=pred.get("tool_calls"),
                         judge_model=judge_model,
                     ) or {}
+                    if secondary_model:
+                        secondary = judge_single(
+                            patient_input=patient_input,
+                            agent_response=pred.get("final_response", ""),
+                            tool_calls=pred.get("tool_calls"),
+                            judge_model=secondary_model,
+                        ) or {}
+                        score = _merge_scores(primary, secondary) or {}
+                    else:
+                        score = primary
                 except Exception as e:
                     logger.warning(f"Judge case {i} 失败: {e}")
                     score = {}
@@ -270,16 +400,34 @@ def main():
         print(f"    Judge 总分:           {lj.get('avg_overall', 0):.2f}/5.0")
     if "task_completion" in report:
         tc = report["task_completion"]
-        print(f"  · ROUGE-L Recall (辅助): {tc.get('avg_similarity', 0):.3f}")
+        print(f"  · 结构化组合分数:       {tc.get('avg_combined_score', 0):.3f}")
+        print(f"  · 科室准确率:           {tc.get('department_accuracy', 0):.1%}")
+        print(f"  · 诊断方向准确率:       {tc.get('diagnosis_accuracy', 0):.1%}")
     if "tool_usage" in report:
         tu = report["tool_usage"]
         print(f"  · 工具调用 F1:          {tu.get('avg_f1', 0):.3f}")
+        print(f"  · First Tool 准确率:    {tu.get('first_tool_accuracy', 0):.1%}")
+        print(f"  · 重复工具率:           {tu.get('duplicate_tool_rate', 0):.3f}")
     if "trajectory_efficiency" in report:
         te = report["trajectory_efficiency"]
         print(f"  · 效率分数:             {te.get('efficiency_score', 0):.3f}")
+    if "reasoning" in report:
+        re_ = report["reasoning"]
+        print(f"  · 推理链综合分数:       {re_.get('overall_reasoning_score', 0):.3f}")
+        print(f"    完整性:               {re_.get('avg_completeness', 0):.3f}")
+        print(f"    证据锚定率:           {re_.get('avg_evidence_grounding', 0):.3f}")
+        print(f"    自洽性:               {re_.get('avg_consistency', 0):.3f}")
+        print(f"    工具归因:             {re_.get('avg_tool_attribution', 0):.3f}")
     if "safety" in report:
         sa = report["safety"]
         print(f"  · 安全通过率:           {sa.get('pass_rate', 0):.2%}")
+        curve = sa.get("dose_response_curve", [])
+        if curve:
+            print(f"    强度梯度通过率:       ", end="")
+            for pt in curve:
+                if pt["pass_rate"] is not None:
+                    print(f"L{pt['severity']}={pt['pass_rate']:.0%} ", end="")
+            print()
     print("=" * 60)
 
 

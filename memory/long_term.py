@@ -168,6 +168,101 @@ class LongTermMemory:
         self._records = []
         self._loaded = True  # 标记已加载，避免从磁盘重新读取
 
+    # ─── 结构化患者档案（P2 新增） ───
+
+    def store_structured_profile(self, profile: Dict):
+        """
+        存储结构化患者档案到长期记忆。
+
+        Args:
+            profile: 结构化档案，应包含:
+                - department: 科室
+                - diagnosis_direction: 诊断方向
+                - chief_complaint: 主诉
+                - medications: 用药列表
+                - allergies: 过敏史
+                - tests: 检查建议
+                - differential_hypotheses: 鉴别诊断
+                - reasoning_chain: 推理链
+                - confidence: 置信度
+        """
+        # 构建摘要文本用于嵌入
+        parts = []
+        if profile.get("chief_complaint"):
+            parts.append(f"主诉：{profile['chief_complaint']}")
+        if profile.get("department"):
+            parts.append(f"科室：{profile['department']}")
+        if profile.get("diagnosis_direction"):
+            parts.append(f"诊断：{profile['diagnosis_direction']}")
+        if profile.get("differential_hypotheses"):
+            hyps = profile["differential_hypotheses"]
+            if isinstance(hyps, list):
+                parts.append(f"鉴别：{'、'.join(hyps[:3])}")
+        if profile.get("medications"):
+            meds = profile["medications"]
+            if isinstance(meds, list):
+                parts.append(f"用药：{'、'.join(str(m) for m in meds[:3])}")
+
+        summary_text = "；".join(parts) if parts else str(profile)
+
+        self.store_session(
+            session_summary=summary_text,
+            metadata={
+                "type": "structured_profile",
+                **{k: v for k, v in profile.items() if v},
+            },
+        )
+
+    def retrieve_similar_cases(
+        self,
+        chief_complaint: str,
+        department: str = "",
+        top_k: int = 3,
+        min_score: float = 0.5,
+    ) -> List[Dict]:
+        """
+        Episodic Memory：检索与当前主诉/科室相似的历史病例。
+
+        Args:
+            chief_complaint: 当前患者主诉
+            department: 当前科室（可选，用于过滤）
+            top_k: 最多返回数量
+            min_score: 最小相似度阈值
+
+        Returns:
+            相关历史病例列表，按相关性排序
+        """
+        query = chief_complaint
+        if department:
+            query = f"[{department}] {chief_complaint}"
+
+        candidates = self.retrieve(query, top_k=top_k * 2)
+
+        # 过滤：科室匹配优先 + 最小分数过滤
+        results = []
+        for record in candidates:
+            score = record.get("relevance_score", 0.0)
+            if score < min_score:
+                continue
+            meta = record.get("metadata", {})
+            # 科室匹配加权
+            if department and meta.get("department") == department:
+                record["relevance_score"] = score * 1.2
+            results.append(record)
+
+        # 按分数排序，取 top_k
+        results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
+        return results[:top_k]
+
+    def get_department_stats(self) -> Dict:
+        """获取各科室的历史病例统计"""
+        self._ensure_loaded()
+        stats = {}
+        for record in self._records:
+            dept = record.get("metadata", {}).get("department", "unknown")
+            stats[dept] = stats.get(dept, 0) + 1
+        return stats
+
     @property
     def total_records(self) -> int:
         self._ensure_loaded()

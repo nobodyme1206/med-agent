@@ -20,6 +20,7 @@ data/memory/
 
 # Model checkpoints
 output/
+results/
 *.pt
 *.bin
 *.safetensors
@@ -27,6 +28,7 @@ output/
 # IDE
 .vscode/
 .idea/
+.windsurf/
 
 # OS
 .DS_Store

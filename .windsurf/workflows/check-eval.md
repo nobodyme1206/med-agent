@@ -5,22 +5,29 @@ description: 检查服务器评测进度和结果
 ## 检查 MedAgent 评测状态
 
 服务器信息：
-- SSH: `sshpass -p 'YfexT9sxuGWf' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 50556 root@connect.westb.seetacloud.com`
+- SSH: `cat <<'REMOTE' | sshpass -p 'JyIneE76atNn' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 38277 root@connect.cqa1.seetacloud.com 'bash -s'`
 - 项目路径: `/root/autodl-tmp/med-agent`
-- 日志: `/root/autodl-tmp/eval_all.log`
+- 日志: `/root/autodl-tmp/base_*.log`
 
 ### 步骤
 
 // turbo
 1. 查看评测日志最后 30 行，确认当前进度：
 ```bash
-sshpass -p 'YfexT9sxuGWf' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 50556 root@connect.westb.seetacloud.com 'tail -30 /root/autodl-tmp/eval_all.log 2>/dev/null'
+cat <<'REMOTE' | sshpass -p 'JyIneE76atNn' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 38277 root@connect.cqa1.seetacloud.com 'bash -s'
+tail -30 /root/autodl-tmp/base_*.log 2>/dev/null || echo "NO_LOG"
+REMOTE
 ```
 
 // turbo
 2. 查看已完成的评测报告：
 ```bash
-sshpass -p 'YfexT9sxuGWf' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 50556 root@connect.westb.seetacloud.com 'for m in base sft rest; do echo "=== $m ==="; cat /root/autodl-tmp/med-agent/results/$m/evaluation_report.json 2>/dev/null | python3 -m json.tool || echo "(未完成)"; done'
+cat <<'REMOTE' | sshpass -p 'JyIneE76atNn' ssh -o ConnectTimeout=10 -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 38277 root@connect.cqa1.seetacloud.com 'bash -s'
+for d in /root/autodl-tmp/med-agent/results/base_*/; do
+  echo "=== $(basename $d) ==="
+  cat "$d/evaluation_report.json" 2>/dev/null | python3 -m json.tool || echo "(未完成)"
+done
+REMOTE
 ```
 
 3. 根据输出汇总进度并告知用户：
