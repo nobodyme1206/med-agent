@@ -17,7 +17,8 @@ lora_dropout: 0.05
 
 ### Dataset
 dataset: med_agent_rest
-dataset_dir: /root/autodl-tmp/data
+dataset_dir: /root/autodl-tmp/med-agent/data/synth/sft_data
+dataset_info: /root/autodl-tmp/med-agent/training/dataset_info.json
 template: qwen
 cutoff_len: 4096
 overwrite_cache: true

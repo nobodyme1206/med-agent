@@ -14,9 +14,9 @@ lora_target: all
 lora_dropout: 0.05
 
 ### Dataset
-# 需要在 LLaMA-Factory/data/dataset_info.json 中注册 med_agent_sft 数据集
 dataset: med_agent_sft
-dataset_dir: /root/autodl-tmp/data
+dataset_dir: /root/autodl-tmp/med-agent/data/synth/sft_data
+dataset_info: /root/autodl-tmp/med-agent/training/dataset_info.json
 template: qwen
 cutoff_len: 4096
 overwrite_cache: true
