@@ -13,6 +13,7 @@ data/synth/trajectories/*.json
 data/synth/trajectories/*.jsonl
 data/synth/sft_data/*.json
 data/memory/
+data/traces/
 
 # Logs & checkpoints
 *.log

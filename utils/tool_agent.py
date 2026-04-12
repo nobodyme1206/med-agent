@@ -20,6 +20,7 @@
 
 import json
 import logging
+import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from graph.state import TOKEN_BUDGET
@@ -27,6 +28,10 @@ from tools.registry import registry
 from utils.llm_client import chat, chat_with_messages, get_token_usage
 
 logger = logging.getLogger(__name__)
+
+# 默认使用文本模式（与 SFT 训练数据的 <tool_call> 格式一致）
+# 设置环境变量 TOOL_AGENT_PREFER_FC=1 可切换为 FC 模式
+_PREFER_FC = os.getenv("TOOL_AGENT_PREFER_FC", "0").strip() in ("1", "true", "yes")
 
 # ─── 文本模式 fallback 提示词片段 ───
 _TEXT_TOOL_INSTRUCTION = (
@@ -466,6 +471,7 @@ def run_tool_agent(
     max_calls_per_tool: Optional[int] = None,
     temperature: float = 0.3,
     max_tokens: int = 1024,
+    prefer_fc: Optional[bool] = None,
 ) -> Dict:
     """
     统一工具调用引擎入口。
@@ -479,10 +485,13 @@ def run_tool_agent(
         max_rounds: 最大工具调用轮数
         temperature: 采样温度
         max_tokens: 最大生成长度
+        prefer_fc: 是否优先使用 FC 模式，None 时读取环境变量/默认 text 模式
 
     Returns:
         {"response": str, "tool_calls": list, "knowledge": list}
     """
+    use_fc = prefer_fc if prefer_fc is not None else _PREFER_FC
+
     # 构建工具 schema（从 Registry 自动获取）
     active_tool_names = []
     if tools_enabled:
@@ -493,8 +502,8 @@ def run_tool_agent(
 
     tool_schemas = registry.get_openai_tools(filter_names=active_tool_names) if active_tool_names else []
 
-    # 优先 Function Calling 模式
-    if tool_schemas:
+    if use_fc and tool_schemas:
+        # FC 模式：依赖 API 层结构化 tool_calls
         fc_result = _run_fc_mode(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -512,9 +521,10 @@ def run_tool_agent(
         if fc_result is not None:
             logger.info(f"ToolAgent: FC 模式完成 (工具调用={len(fc_result['tool_calls'])})")
             return fc_result
+        logger.info("ToolAgent: FC 模式失败，回退到文本模式")
 
-    # Fallback：文本解析模式
-    logger.info("ToolAgent: FC 不可用，回退到文本模式")
+    # 文本解析模式（默认）：与 SFT 训练数据的 <tool_call> 格式一致
+    logger.info(f"ToolAgent: 使用文本模式 (可用工具={active_tool_names})")
     tool_desc = _build_text_tool_description(active_tool_names) if active_tool_names else ""
     text_system = system_prompt + tool_desc + "\n" + _TEXT_TOOL_INSTRUCTION
     return _run_text_mode(

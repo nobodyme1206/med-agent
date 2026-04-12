@@ -39,6 +39,9 @@ BASE_URL = os.environ.get("PARATERA_BASE_URL", "http://localhost:8000/v1")
 CHAT_MODEL = os.environ.get("CHAT_MODEL", "default")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "default")
 
+JUDGE_API_KEY = os.environ.get("JUDGE_API_KEY", "")
+JUDGE_BASE_URL = os.environ.get("JUDGE_BASE_URL", "")
+
 
 def _get_client():
     try:
@@ -46,6 +49,14 @@ def _get_client():
     except ImportError:
         raise ImportError("请安装 openai：pip install openai")
     return OpenAI(api_key=API_KEY, base_url=BASE_URL)
+
+
+def _get_judge_client():
+    """获取 Judge 专用客户端（走外部 API）"""
+    if not JUDGE_API_KEY or not JUDGE_BASE_URL:
+        return _get_client()
+    from openai import OpenAI
+    return OpenAI(api_key=JUDGE_API_KEY, base_url=JUDGE_BASE_URL)
 
 
 # ─────────────────────────────────────────────
@@ -66,8 +77,9 @@ def chat(
     Args:
         response_format: 可选，如 {"type": "json_object"} 强制 JSON 输出
     """
-    client = _get_client()
     model = model or CHAT_MODEL
+    is_external = (model != CHAT_MODEL and JUDGE_API_KEY and JUDGE_BASE_URL)
+    client = _get_judge_client() if is_external else _get_client()
     messages = []
     if system:
         messages.append({"role": "system", "content": system})

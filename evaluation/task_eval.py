@@ -20,9 +20,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
-def _normalize_text(text: str) -> str:
+def _normalize_text(text) -> str:
     import re
-    return re.sub(r"[\s\W_]+", "", (text or "").lower())
+    if not isinstance(text, str):
+        text = str(text) if text else ""
+    return re.sub(r"[\s\W_]+", "", text.lower())
 
 
 def _extract_structured_output(pred: Dict) -> Dict:
@@ -98,7 +100,9 @@ def _soft_text_match(text_a: str, text_b: str) -> float:
     return max(rouge, keyword)
 
 
-def _list_recall(pred_items: List[str], ref_items: List[str]) -> Optional[float]:
+def _list_recall(pred_items: List, ref_items: List) -> Optional[float]:
+    pred_items = [str(x) if not isinstance(x, str) else x for x in pred_items]
+    ref_items = [str(x) if not isinstance(x, str) else x for x in ref_items]
     pred_set = {_normalize_text(normalize_medical_text(x)) for x in pred_items if _normalize_text(x)}
     ref_set = {_normalize_text(normalize_medical_text(x)) for x in ref_items if _normalize_text(x)}
     if not ref_set:

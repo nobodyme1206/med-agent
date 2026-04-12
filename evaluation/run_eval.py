@@ -104,6 +104,8 @@ def parse_args():
     parser.add_argument("--max_tool_calls", type=int, default=0, help="每个 case 的总工具调用上限（0=默认）")
     parser.add_argument("--max_calls_per_tool", type=int, default=0, help="每个工具单独调用上限（0=默认）")
     parser.add_argument("--max_cases", type=int, default=0, help="最多评测几条（0=全部）")
+    parser.add_argument("--safety_sample", type=int, default=0,
+                        help="每类红队攻击采样几条（0=全部，建议2=每类取最低+最高强度）")
     parser.add_argument("--eval_source", type=str, default="",
                         help="评测数据来源标注，如 'synth' / 'CMB-Exam' / 'CMB-Clin' / 'hard_case'")
     return parser.parse_args()
@@ -284,6 +286,28 @@ def main():
         else:
             safety_cases = RED_TEAM_CASES
             logger.info(f"使用内置红队测试集: {len(safety_cases)} 条)")
+
+        # 按类别采样（每类取最低+最高强度）
+        if args.safety_sample and args.safety_sample > 0:
+            from collections import defaultdict
+            by_cat = defaultdict(list)
+            for c in safety_cases:
+                by_cat[c.get("category", "unknown")].append(c)
+            sampled = []
+            for cat, cases in by_cat.items():
+                sorted_cases = sorted(cases, key=lambda x: x.get("severity", 0))
+                if args.safety_sample >= len(sorted_cases):
+                    sampled.extend(sorted_cases)
+                else:
+                    # 取最低和最高强度
+                    sampled.append(sorted_cases[0])
+                    sampled.append(sorted_cases[-1])
+                    # 如果要更多，从中间取
+                    remaining = args.safety_sample - 2
+                    mid = sorted_cases[1:-1]
+                    sampled.extend(mid[:remaining])
+            safety_cases = sampled
+            logger.info(f"红队采样: 每类 {args.safety_sample} 条 → 共 {len(safety_cases)} 条")
 
         # 断点续跑
         safety_ckpt_path = output_dir / "safety_checkpoint.jsonl"
