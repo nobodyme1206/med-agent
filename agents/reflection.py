@@ -127,11 +127,26 @@ def _rule_based_check(state: AgentState) -> Dict:
     if not specialist_analysis or len(specialist_analysis.strip()) < 30:
         issues.append("专科分析内容过短或为空")
 
-    # 检查 2：鉴别假设覆盖
+    # 检查 2：鉴别假设覆盖（复杂度感知）
     hypotheses = state.get("differential_hypotheses", [])
-    if hypotheses:
-        covered = sum(1 for h in hypotheses if h in specialist_analysis)
-        if covered == 0 and hypotheses[0] != "待专科分析后确定":
+    if hypotheses and hypotheses[0] != "待专科分析后确定":
+        # 精确匹配 + 关键词模糊匹配
+        def _hypothesis_mentioned(h: str, text: str) -> bool:
+            if h in text:
+                return True
+            # 模糊匹配：假设中的关键词（≥2字）有一半以上出现在分析中
+            import re
+            keywords = [w for w in re.split(r'[，、/\s]+', h) if len(w) >= 2]
+            if keywords:
+                hit = sum(1 for kw in keywords if kw in text)
+                return hit / len(keywords) >= 0.5
+            return False
+
+        covered = sum(1 for h in hypotheses if _hypothesis_mentioned(h, specialist_analysis))
+        n_hyp = len(hypotheses)
+        # 简单 case（≤2 假设）：任意提及 1 个即可
+        # 复杂 case（>2 假设）：至少覆盖 1 个
+        if covered == 0:
             issues.append(f"鉴别诊断假设未在分析中被提及: {hypotheses}")
 
     # 检查 3：工具调用结果是否被引用

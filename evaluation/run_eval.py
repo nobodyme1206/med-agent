@@ -434,50 +434,38 @@ def main():
         json.dump(report, f, ensure_ascii=False, indent=2)
     logger.info(f"评测报告保存: {report_path}")
 
-    # 打印摘要
+    # 打印摘要（6 核心指标）
     print("\n" + "=" * 60)
-    print(f"MedAgent 评测报告摘要 [数据来源: {report.get('eval_source', 'unknown')}]")
+    print(f"MedAgent 评测摘要 [{report.get('eval_source', 'unknown')}]")
     print("=" * 60)
-    if "data_source_distribution" in report:
-        print(f"  数据来源分布: {report['data_source_distribution']}")
-    if "llm_judge" in report:
-        lj = report["llm_judge"]
-        print(f"  ★ 诊断准确率 (Judge≥4):  {lj.get('diagnostic_accuracy', 0):.1%} "
-              f"({lj.get('diagnostic_correct', 0)}/{lj.get('diagnostic_total', 0)})")
-        print(f"    含部分正确 (Judge≥3): {lj.get('diagnostic_partial', 0):.1%}")
-        print(f"    Judge 准确性均分:     {lj.get('avg_accuracy', 0):.2f}/5.0")
-        print(f"    Judge 安全性均分:     {lj.get('avg_safety', 0):.2f}/5.0")
-        print(f"    Judge 总分:           {lj.get('avg_overall', 0):.2f}/5.0")
-    if "task_completion" in report:
-        tc = report["task_completion"]
-        print(f"  · 结构化组合分数:       {tc.get('avg_combined_score', 0):.3f}")
-        print(f"  · 科室准确率:           {tc.get('department_accuracy', 0):.1%}")
-        print(f"  · 诊断方向准确率:       {tc.get('diagnosis_accuracy', 0):.1%}")
-    if "tool_usage" in report:
-        tu = report["tool_usage"]
-        print(f"  · 工具调用 F1:          {tu.get('avg_f1', 0):.3f}")
-        print(f"  · First Tool 准确率:    {tu.get('first_tool_accuracy', 0):.1%}")
-        print(f"  · 重复工具率:           {tu.get('duplicate_tool_rate', 0):.3f}")
-    if "trajectory_efficiency" in report:
-        te = report["trajectory_efficiency"]
-        print(f"  · 效率分数:             {te.get('efficiency_score', 0):.3f}")
-    if "reasoning" in report:
-        re_ = report["reasoning"]
-        print(f"  · 推理链综合分数:       {re_.get('overall_reasoning_score', 0):.3f}")
-        print(f"    完整性:               {re_.get('avg_completeness', 0):.3f}")
-        print(f"    证据锚定率:           {re_.get('avg_evidence_grounding', 0):.3f}")
-        print(f"    自洽性:               {re_.get('avg_consistency', 0):.3f}")
-        print(f"    工具归因:             {re_.get('avg_tool_attribution', 0):.3f}")
-    if "safety" in report:
-        sa = report["safety"]
-        print(f"  · 安全通过率:           {sa.get('pass_rate', 0):.2%}")
-        curve = sa.get("dose_response_curve", [])
-        if curve:
-            print(f"    强度梯度通过率:       ", end="")
-            for pt in curve:
-                if pt["pass_rate"] is not None:
-                    print(f"L{pt['severity']}={pt['pass_rate']:.0%} ", end="")
-            print()
+    lj = report.get("llm_judge", {})
+    tc = report.get("task_completion", {})
+    tu = report.get("tool_usage", {})
+    re_ = report.get("reasoning", {})
+    sa = report.get("safety", {})
+    print(f"  ★ Judge 综合分:     {lj.get('avg_overall', 0):.2f}/5.0")
+    print(f"  ★ 诊断准确率:       {lj.get('diagnostic_accuracy', 0):.1%} "
+          f"({lj.get('diagnostic_correct', 0)}/{lj.get('diagnostic_total', 0)})")
+    print(f"  · 科室准确率:       {tc.get('department_accuracy', 0):.1%}")
+    print(f"  · 工具 F1:          {tu.get('avg_f1', 0):.3f}")
+    print(f"  · 安全通过率:       {sa.get('pass_rate', 0):.2%}")
+    print(f"  · 推理综合分:       {re_.get('overall_reasoning_score', 0):.3f}")
+    print("-" * 60)
+    # 详细指标（供深入分析）
+    print(f"  Judge 子维度:  准确={lj.get('avg_accuracy', 0):.2f}  "
+          f"安全={lj.get('avg_safety', 0):.2f}  "
+          f"完整={lj.get('avg_completeness', 0):.2f}  "
+          f"工具={lj.get('avg_tool_usage', 0):.2f}")
+    print(f"  推理子维度:    完整={re_.get('avg_completeness', 0):.3f}  "
+          f"证据={re_.get('avg_evidence_grounding', 0):.3f}  "
+          f"自洽={re_.get('avg_consistency', 0):.3f}  "
+          f"归因={re_.get('avg_tool_attribution', 0):.3f}")
+    if sa.get("dose_response_curve"):
+        print(f"  安全梯度:      ", end="")
+        for pt in sa["dose_response_curve"]:
+            if pt["pass_rate"] is not None:
+                print(f"L{pt['severity']}={pt['pass_rate']:.0%} ", end="")
+        print()
     print("=" * 60)
 
 

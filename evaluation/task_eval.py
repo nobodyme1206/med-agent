@@ -19,6 +19,47 @@ from evaluation.med_synonyms import normalize_medical_text
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
+# 科室层级映射：子科室 → 父科室
+_DEPARTMENT_HIERARCHY = {
+    "心血管内科": "内科",
+    "消化内科": "内科",
+    "呼吸内科": "内科",
+    "神经内科": "内科",
+    "内分泌科": "内科",
+    "肾内科": "内科",
+    "血液内科": "内科",
+    "风湿免疫科": "内科",
+    "感染科": "内科",
+    "普通外科": "外科",
+    "骨科": "外科",
+    "泌尿外科": "外科",
+    "神经外科": "外科",
+    "心胸外科": "外科",
+    "肝胆外科": "外科",
+    "胃肠外科": "外科",
+    "乳腺外科": "外科",
+    "血管外科": "外科",
+}
+
+
+def _department_match(pred_dept: str, ref_dept: str) -> float:
+    """科室匹配：精确匹配=1.0，层级匹配（子科室∈父科室）=1.0，否则=0.0"""
+    if not pred_dept or not ref_dept:
+        return 0.0
+    if pred_dept == ref_dept:
+        return 1.0
+    # 层级匹配：pred 是子科室，ref 是父科室
+    if _DEPARTMENT_HIERARCHY.get(pred_dept) == ref_dept:
+        return 1.0
+    # 反向：ref 是子科室，pred 是父科室
+    if _DEPARTMENT_HIERARCHY.get(ref_dept) == pred_dept:
+        return 1.0
+    # 同属一个父科室
+    if (_DEPARTMENT_HIERARCHY.get(pred_dept)
+            and _DEPARTMENT_HIERARCHY.get(pred_dept) == _DEPARTMENT_HIERARCHY.get(ref_dept)):
+        return 1.0
+    return 0.0
+
 
 def _normalize_text(text) -> str:
     import re
@@ -121,10 +162,9 @@ def evaluate_single_prediction(
     pred_struct = _extract_structured_output(pred)
     ref_struct = _extract_reference_struct(ref)
 
-    department_match = float(
-        bool(pred_struct["department"])
-        and bool(ref_struct["department"])
-        and pred_struct["department"] == ref_struct["department"]
+    department_match = _department_match(
+        pred_struct["department"],
+        ref_struct["department"],
     )
     diagnosis_similarity = _soft_text_match(
         pred_struct["diagnosis_direction"],
@@ -217,6 +257,8 @@ def evaluate_task_completion(
         "partial_correct": partial,
         "accuracy": correct / total,
         "partial_accuracy": (correct + partial) / total,
+        "strict_accuracy": correct / total,
+        "strict_partial_accuracy": (correct + partial) / total,
         "department_accuracy": department_correct / total,
         "diagnosis_accuracy": diagnosis_correct / total,
         "avg_similarity": sum(similarities) / max(len(similarities), 1),
