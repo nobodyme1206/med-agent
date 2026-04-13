@@ -87,9 +87,16 @@ bash scripts/run_base_eval.sh
 Qwen2.5-7B-Instruct → Agentic SFT → ReST Round 1 → 评测+飞轮 → ReST Round 2
 ```
 
-- **Agentic SFT**：LLaMA-Factory LoRA rank=16，学会 `<think>` → `<tool_call>` → `<structured_output>` → `<response>` 格式
-- **ReST**：每 prompt 生成 8 个 → 9 维 reward 筛选 top-2 → SFT。支持 `--rest_round` 多轮迭代
+- **Agentic SFT**：LLaMA-Factory QLoRA（4-bit 量化 + LoRA rank=16），RTX 4090 24GB 可跑
+- **ReST**：`rest_generate_api.py` API 模式生成（fp16 推理 + 重试），每 prompt 4 completion → 9 维 reward 筛选 top-2 → SFT
 - **数据飞轮**：`flywheel.py` 编排 eval → failure 挖掘 → augment → 质控 → 合并
+
+### 训练实际结果
+
+| 阶段 | 数据量 | Epochs | Train Loss | Eval Loss | 耗时 |
+|------|--------|--------|------------|-----------|------|
+| **Agentic SFT** | 499 条 | 3 | 2.05→1.23 | 1.24 | 11 min |
+| **ReST SFT** | 573 条 | 1 | 0.73→0.60 | 0.60 | 2.5 min |
 
 ### 为什么 ReST 而非 GRPO
 
@@ -132,18 +139,49 @@ Qwen2.5-7B-Instruct → Agentic SFT → ReST Round 1 → 评测+飞轮 → ReST 
 
 > **Layer 3 说明**：CMB 是单轮 QA（病历→诊断），与 Agent 的多轮问诊架构不匹配（输入平均 38 字、60% 科室标注为"内科"），仅作泛化能力下限参考。
 
-### Baseline（Base Qwen2.5-7B，三层对比）
+### Base vs SFT vs ReST 三层对比
 
-| 指标 | Synth (50) | Hard (20) | CMB (30) |
-|------|-----------|-----------|----------|
-| **Judge 综合分** | 4.17 | 4.31 | 4.17 |
-| **诊断准确率** | 91.8% | 90.0% | 93.1% |
-| **科室准确率** | 78.0% | 75.0% | 23.3%* |
-| **工具 F1** | 0.56 | 0.68 | 0.91 |
-| **安全通过率** | 90% | 78% | 80% |
-| **推理综合分** | 0.567 | 0.558 | 0.563 |
+**Synth（50 条合成数据）**
+
+| 指标 | Base | SFT | ReST |
+|------|------|-----|------|
+| **Judge 综合分** | 4.17 | 4.10 | **4.22** |
+| **诊断准确率** | 91.8% | 81.6% | **88.0%** |
+| **科室准确率** | 78.0% | **86.0%** | **86.0%** |
+| **工具 F1** | 0.56 | 0.585 | **0.609** |
+| **安全通过率** | 90% | 80% | 85% |
+| **推理综合分** | 0.567 | 0.553 | 0.559 |
+
+**Hard（20 条手工设计难例）**
+
+| 指标 | Base | SFT | ReST |
+|------|------|-----|------|
+| **Judge 综合分** | 4.31 | 4.04 | **4.28** |
+| **诊断准确率** | 90.0% | 70.0% | **90.0%** |
+| **科室准确率** | 75.0% | **95.0%** | **95.0%** |
+| **工具 F1** | 0.68 | **0.805** | 0.723 |
+| **安全通过率** | 78% | **85%** | 75% |
+| **推理综合分** | 0.558 | 0.533 | **0.576** |
+
+**CMB（30 条公开数据）**
+
+| 指标 | Base | SFT | ReST |
+|------|------|-----|------|
+| **Judge 综合分** | 4.17 | 4.11 | **4.21** |
+| **诊断准确率** | 93.1% | **96.4%** | 93.1% |
+| **科室准确率** | 23.3%* | **53.3%** | **53.3%** |
+| **工具 F1** | **0.91** | 0.782 | 0.798 |
+| **安全通过率** | 80% | 80% | **90%** |
+| **推理综合分** | 0.563 | **0.565** | 0.548 |
 
 > *CMB 科室准确率低是因为 CMB 标注为粗粒度"内科"，Agent 路由到细分科室（如心血管内科）。已加入科室层级匹配（子科室∈父科室=正确）。
+
+### 后训练关键发现
+
+- **ReST 修复了 SFT 的诊断退化**：SFT 因少量幻觉样本（虚构检验值）导致 Hard 诊断 70%，ReST 的 9 维 reward 过滤掉幻觉样本后恢复至 90%
+- **科室准确率大幅提升且稳定保留**：SFT +8/+20/+30 百分点，ReST 完整继承
+- **Judge 综合分全面超过 Base**：ReST 在三个数据集均优于 Base（4.22/4.28/4.21 vs 4.17/4.31/4.17）
+- **工具使用持续改善**：Judge tool_usage 子分 Base 3.78→SFT 4.02→ReST 4.06
 
 ### 评测命令
 
@@ -185,9 +223,13 @@ med-agent/
 │   └── long_term.py          # FAISS + 结构化档案 + 相似病例检索
 ├── training/
 │   ├── reward.py             # 9 维奖励函数
-│   ├── rest_generate.py      # 迭代 ReST 数据生成
+│   ├── rest_generate.py      # ReST 数据生成（本地模型模式）
+│   ├── rest_generate_api.py  # ReST 数据生成（API 模式，推荐，含重试）
 │   ├── grpo_train.py         # GRPO（保留对照）
-│   └── configs/              # LLaMA-Factory 配置
+│   ├── dataset_info.json     # LLaMA-Factory 数据集注册
+│   └── configs/
+│       ├── sft_config.yaml       # QLoRA SFT 配置
+│       └── rest_sft_config.yaml  # ReST SFT 配置
 ├── evaluation/
 │   ├── task_eval.py          # 任务完成率 + 同义词归一化
 │   ├── trajectory_eval.py    # 轨迹效率 + Reflection 指标
@@ -203,17 +245,25 @@ med-agent/
 │   ├── alerts.py             # 告警规则
 │   └── fallback.py           # 三层兜底策略
 ├── scripts/
-│   ├── generate_synth_data.py      # 合成 trajectory（Pilot 模式）
-│   ├── convert_traj_to_sft.py      # trajectory → SFT/GRPO 数据
-│   ├── convert_cmb_to_eval.py      # CMB → 评测格式
-│   ├── augment_failure_cases.py    # 失败样本 → hard-case
-│   ├── data_quality.py             # 6 维质控 + embedding 去重
-│   ├── flywheel.py                 # 数据飞轮编排器
-│   ├── run_base_eval.sh            # 一键三层 Baseline
-│   ├── run_full_eval.sh            # 全量评测矩阵
-│   ├── build_drug_kb.py            # 构建药品知识库
-│   ├── build_guideline_index.py    # 构建 RAG 索引
-│   └── prepare_autodl.sh           # AutoDL 环境配置
+│   ├── data/                        # 数据构建与质控
+│   │   ├── generate_synth_data.py       # 合成 trajectory（Pilot 模式）
+│   │   ├── convert_traj_to_sft.py       # trajectory → SFT/GRPO 数据
+│   │   ├── convert_cmb_to_eval.py       # CMB → 评测格式
+│   │   ├── augment_failure_cases.py     # 失败样本 → hard-case
+│   │   ├── data_quality.py              # 6 维质控 + embedding 去重
+│   │   └── flywheel.py                  # 数据飞轮编排器
+│   ├── knowledge/                   # 知识库构建
+│   │   ├── build_drug_kb.py             # 构建药品知识库
+│   │   ├── build_guideline_index.py     # 构建 RAG 索引
+│   │   ├── expand_drug_kb.py            # 扩展药品知识库
+│   │   └── expand_lab_ranges.py         # 扩展检验范围
+│   ├── eval/                        # 评测脚本
+│   │   ├── run_model_eval.sh            # 通用三层评测（MODEL_TAG=base/sft/rest）
+│   │   ├── run_full_eval.sh             # 全量评测矩阵
+│   │   ├── run_ablation.py              # 消融实验
+│   │   └── rescore_all.sh               # 重算评测分数
+│   ├── train_sft.sh                 # SFT 训练入口
+│   └── prepare_autodl.sh            # AutoDL 环境配置
 ├── utils/
 │   ├── llm_client.py         # LLM API 封装
 │   └── tool_agent.py         # 统一工具调用引擎

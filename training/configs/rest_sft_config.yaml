@@ -15,12 +15,15 @@ lora_alpha: 32
 lora_target: all
 lora_dropout: 0.05
 
+### Quantization (QLoRA)
+quantization_bit: 4
+quantization_method: bitsandbytes
+
 ### Dataset
 dataset: med_agent_rest
 dataset_dir: /root/autodl-tmp/med-agent/data/synth/sft_data
-dataset_info: /root/autodl-tmp/med-agent/training/dataset_info.json
 template: qwen
-cutoff_len: 4096
+cutoff_len: 2048
 overwrite_cache: true
 
 ### Output
@@ -31,8 +34,8 @@ save_total_limit: 3
 overwrite_output_dir: true
 
 ### Training - 短训练，1 epoch 足够
-per_device_train_batch_size: 4
-gradient_accumulation_steps: 4
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
 learning_rate: 5.0e-6
 num_train_epochs: 1
 lr_scheduler_type: cosine
@@ -41,6 +44,6 @@ bf16: true
 
 ### Evaluation
 val_size: 0.05
-per_device_eval_batch_size: 4
+per_device_eval_batch_size: 1
 eval_strategy: steps
 eval_steps: 50
