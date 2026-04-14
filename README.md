@@ -187,7 +187,7 @@ Qwen2.5-7B-Instruct → Agentic SFT → ReST Round 1 → 评测+飞轮 → ReST 
 
 ```bash
 # 一键三层评测
-bash scripts/run_base_eval.sh
+bash scripts/eval/run_base_eval.sh
 
 # 单数据集 + 消融
 python -m evaluation.run_eval \
@@ -250,14 +250,17 @@ med-agent/
 │   │   ├── convert_traj_to_sft.py       # trajectory → SFT/GRPO 数据
 │   │   ├── convert_cmb_to_eval.py       # CMB → 评测格式
 │   │   ├── augment_failure_cases.py     # 失败样本 → hard-case
+│   │   ├── generate_eval_cases.py          # 生成评测用例
 │   │   ├── data_quality.py              # 6 维质控 + embedding 去重
 │   │   └── flywheel.py                  # 数据飞轮编排器
 │   ├── knowledge/                   # 知识库构建
 │   │   ├── build_drug_kb.py             # 构建药品知识库
 │   │   ├── build_guideline_index.py     # 构建 RAG 索引
 │   │   ├── expand_drug_kb.py            # 扩展药品知识库
-│   │   └── expand_lab_ranges.py         # 扩展检验范围
+│   │   ├── expand_lab_ranges.py         # 扩展检验范围
+│   │   └── generate_guideline_texts.py  # 生成诊疗指南文本
 │   ├── eval/                        # 评测脚本
+│   │   ├── run_base_eval.sh                # Base 模型三层评测
 │   │   ├── run_model_eval.sh            # 通用三层评测（MODEL_TAG=base/sft/rest）
 │   │   ├── run_full_eval.sh             # 全量评测矩阵
 │   │   ├── run_ablation.py              # 消融实验
@@ -273,6 +276,8 @@ med-agent/
 │   ├── guidelines/           # 诊疗指南 + FAISS 索引
 │   ├── synth/                # 合成训练数据
 │   └── eval/                 # 评测数据集
+├── tests/
+│   └── test_tools.py         # 工具单元测试
 ├── app.py                    # Gradio Demo
 ├── requirements.txt
 └── .env.example
